@@ -1,0 +1,126 @@
+{
+  "name": "mcp-tool-explorer",
+  "displayName": "MCP Tool Explorer",
+  "description": "Browse tools from the MCP servers configured in VS Code, inspect each tool's icon, parameter datatypes, and response schema, try a tool from a parameter dialog, and connect a machine-to-machine client credentials grant.",
+  "version": "0.1.14",
+  "publisher": "Garrard",
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/garrardkitchen/vscode-mcp-tool-explorer"
+  },
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "mcp",
+    "model context protocol",
+    "tools"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:mcpToolExplorer.tools"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mcpToolExplorer",
+          "title": "MCP Tool Explorer",
+          "icon": "media/mcp-tools.svg"
+        }
+      ]
+    },
+    "views": {
+      "mcpToolExplorer": [
+        {
+          "id": "mcpToolExplorer.tools",
+          "name": "MCP Tool Explorer",
+          "contextualTitle": "MCP Tool Explorer"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "mcpToolExplorer.refresh",
+        "title": "Refresh Servers",
+        "category": "MCP Tool Explorer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "mcpToolExplorer.openTool",
+        "title": "Open Tool Details",
+        "category": "MCP Tool Explorer"
+      },
+      {
+        "command": "mcpToolExplorer.tryTool",
+        "title": "Try Tool",
+        "category": "MCP Tool Explorer",
+        "icon": "$(play)"
+      },
+      {
+        "command": "mcpToolExplorer.setClientSecret",
+        "title": "Set Client Secret",
+        "category": "MCP Tool Explorer",
+        "icon": "$(key)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "mcpToolExplorer.refresh",
+          "when": "view == mcpToolExplorer.tools",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "mcpToolExplorer.tryTool",
+          "when": "view == mcpToolExplorer.tools && viewItem == mcpTool",
+          "group": "inline"
+        },
+        {
+          "command": "mcpToolExplorer.setClientSecret",
+          "when": "view == mcpToolExplorer.tools && viewItem == mcpServerCredentials",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mcpToolExplorer.openTool",
+          "when": "false"
+        },
+        {
+          "command": "mcpToolExplorer.tryTool",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "npm run compile && vsce package --allow-missing-repository --no-rewrite-relative-links",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
