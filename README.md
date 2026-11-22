@@ -78,10 +78,12 @@ HTTP servers try Streamable HTTP first and then legacy SSE. An entry with `"type
 
 - Node.js 20 or newer
 - npm
-- VS Code 1.95 or newer
-- The `code` command on your PATH
+- VS Code 1.95 or newer, or Kiro
+- The `code` command on your PATH for VS Code, or the `kiro` command on your PATH for Kiro
 
 In VS Code, run **Shell Command: Install 'code' command in PATH** if the shell cannot find `code`. Use `code-insiders` instead of `code` when you are installing into Insiders.
+
+In Kiro, run **Shell Command: Install 'kiro' command in PATH** if the shell cannot find `kiro`.
 
 ## Build
 
@@ -100,26 +102,47 @@ npm test
 
 ## Install locally
 
-Package a VSIX and install it into VS Code:
+Package a VSIX, then install that file into VS Code, into Kiro, or into both. Each editor keeps its own copy of the extension.
 
 ```bash
 npm run package
+```
+
+Install into VS Code:
+
+```bash
 code --install-extension mcp-tool-explorer-0.1.17.vsix --force
 ```
 
-Reload the window. The **MCP Tool Explorer** icon is on the activity bar. If you do not see it, right-click the activity bar and enable **MCP Tool Explorer**.
+Install into Kiro:
+
+```bash
+kiro --install-extension mcp-tool-explorer-0.1.17.vsix --force
+```
+
+Reload the window in the editor you installed into. The **MCP Tool Explorer** icon is on the activity bar. If you do not see it, right-click the activity bar and enable **MCP Tool Explorer**.
+
+You can also install the VSIX from the Extensions view in either editor. Open the view menu and choose **Install from VSIX...**.
 
 The installed extension id is `Garrard.mcp-tool-explorer`. The package name is `mcp-tool-explorer`. The publisher id is `Garrard`.
 
 ## Uninstall
 
+Uninstall from VS Code:
+
 ```bash
 code --uninstall-extension Garrard.mcp-tool-explorer
 ```
 
-Reload the window. This removes the extension from VS Code. It does not delete the VSIX in this directory.
+Uninstall from Kiro:
 
-For Insiders, use `code-insiders` in the install and uninstall commands.
+```bash
+kiro --uninstall-extension Garrard.mcp-tool-explorer
+```
+
+Reload the window in the editor you uninstalled from. Uninstalling from one editor leaves the extension in the other. Neither command deletes the VSIX in this directory.
+
+For Insiders, use `code-insiders` in the VS Code install and uninstall commands.
 
 ## Use the view
 
