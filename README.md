@@ -223,6 +223,7 @@ A browser OAuth client, including one with only `oauth.clientId` or `oauthGrantT
 ## Project
 
 - [AGENTS.md](AGENTS.md) for the layout, commit rules, and how a tool call is made
+- [Publish to the marketplace](PUBLISH-TO-MARKETPLACE.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)

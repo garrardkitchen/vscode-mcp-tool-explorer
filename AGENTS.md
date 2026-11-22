@@ -208,6 +208,7 @@ A few rules that are easy to get wrong:
 ## Also read
 
 - [README.md](README.md) for what a person using the extension can do
+- [PUBLISH-TO-MARKETPLACE.md](PUBLISH-TO-MARKETPLACE.md) for the Visual Studio Marketplace and Open VSX
 - [CONTRIBUTING.md](CONTRIBUTING.md) for issues and pull requests
 - [SECURITY.md](SECURITY.md) for secrets and how to report a vulnerability
 - [CHANGELOG.md](CHANGELOG.md) for what has shipped

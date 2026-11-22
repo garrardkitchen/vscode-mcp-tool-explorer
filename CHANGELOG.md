@@ -9,6 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Documented how to publish the same package to the Visual Studio Marketplace and to Open VSX.
 - Documented local install and uninstall for both VS Code and Kiro.
 - Added the changelog, security policy, contributing guide, code of conduct, and GitHub issue and pull request templates.
 - Added AGENTS.md with the repository layout, commit rules, dependencies, and the tool-call flow.
