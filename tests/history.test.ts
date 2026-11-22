@@ -75,6 +75,6 @@ test("remembers one dialog size and ignores a size that cannot be used", async (
   assert.deepEqual(store.dialogSize(), { width: 640, height: 880 });
   assert.equal(writes, 1);
 
-  data.set("mcpToolExplorer.tryDialogSize", { width: "640", height: 800 });
+  data.set("mcpToolXplorer.tryDialogSize", { width: "640", height: 800 });
   assert.equal(store.dialogSize(), undefined);
 });

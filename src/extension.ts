@@ -45,9 +45,9 @@ export function activate(context: vscode.ExtensionContext): void {
   replaceWorkspaceWatchers();
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("mcpToolExplorer.tools", tree),
-    vscode.commands.registerCommand("mcpToolExplorer.refresh", () => tree.refresh()),
-    vscode.commands.registerCommand("mcpToolExplorer.openTool", (serverId: unknown, toolName: unknown) => {
+    vscode.window.registerTreeDataProvider("mcpToolXplorer.tools", tree),
+    vscode.commands.registerCommand("mcpToolXplorer.refresh", () => tree.refresh()),
+    vscode.commands.registerCommand("mcpToolXplorer.openTool", (serverId: unknown, toolName: unknown) => {
       if (typeof serverId !== "string" || typeof toolName !== "string") {
         return;
       }
@@ -58,7 +58,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       return detail.show(serverId, toolName, decision.action === "pin");
     }),
-    vscode.commands.registerCommand("mcpToolExplorer.setClientSecret", async (item?: unknown) => {
+    vscode.commands.registerCommand("mcpToolXplorer.setClientSecret", async (item?: unknown) => {
       const server = await chooseClientCredentialsServer(catalog, item);
       if (!server?.clientCredentials) {
         void vscode.window.showInformationMessage("None of the configured servers use a client credentials grant.");
@@ -71,7 +71,7 @@ export function activate(context: vscode.ExtensionContext): void {
       await context.secrets.store(clientSecretStorageKey(server.id, server.clientCredentials.clientId), entered);
       tree.refresh();
     }),
-    vscode.commands.registerCommand("mcpToolExplorer.tryTool", (first?: unknown, second?: unknown) => {
+    vscode.commands.registerCommand("mcpToolXplorer.tryTool", (first?: unknown, second?: unknown) => {
       const fromTree = invocationFromTreeItem(first);
       if (fromTree) {
         return detail.tryTool(fromTree.serverId, fromTree.toolName);

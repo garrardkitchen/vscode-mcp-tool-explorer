@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: A change you want in MCP Tool Explorer
+about: A change you want in MCP Tool Xplorer
 title: ""
 labels: enhancement
 assignees: garrardkitchen

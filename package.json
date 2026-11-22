@@ -1,6 +1,6 @@
 {
-  "name": "mcp-tool-explorer",
-  "displayName": "MCP Tool Explorer",
+  "name": "mcp-tool-xplorer",
+  "displayName": "MCP Tool Xplorer",
   "description": "Browse tools from the MCP servers configured in VS Code, inspect each tool's icon, parameter datatypes, and response schema, try a tool from a parameter dialog, and connect a machine-to-machine client credentials grant.",
   "version": "0.1.17",
   "publisher": "Garrard",
@@ -24,7 +24,7 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onView:mcpToolExplorer.tools"
+    "onView:mcpToolXplorer.tools"
   ],
   "extensionKind": [
     "workspace"
@@ -33,73 +33,73 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "mcpToolExplorer",
-          "title": "MCP Tool Explorer",
+          "id": "mcpToolXplorer",
+          "title": "MCP Tool Xplorer",
           "icon": "media/mcp-tools.svg"
         }
       ]
     },
     "views": {
-      "mcpToolExplorer": [
+      "mcpToolXplorer": [
         {
-          "id": "mcpToolExplorer.tools",
-          "name": "MCP Tool Explorer",
-          "contextualTitle": "MCP Tool Explorer"
+          "id": "mcpToolXplorer.tools",
+          "name": "MCP Tool Xplorer",
+          "contextualTitle": "MCP Tool Xplorer"
         }
       ]
     },
     "commands": [
       {
-        "command": "mcpToolExplorer.refresh",
+        "command": "mcpToolXplorer.refresh",
         "title": "Refresh Servers",
-        "category": "MCP Tool Explorer",
+        "category": "MCP Tool Xplorer",
         "icon": "$(refresh)"
       },
       {
-        "command": "mcpToolExplorer.openTool",
+        "command": "mcpToolXplorer.openTool",
         "title": "Open Tool Details",
-        "category": "MCP Tool Explorer"
+        "category": "MCP Tool Xplorer"
       },
       {
-        "command": "mcpToolExplorer.tryTool",
+        "command": "mcpToolXplorer.tryTool",
         "title": "Try Tool",
-        "category": "MCP Tool Explorer",
+        "category": "MCP Tool Xplorer",
         "icon": "$(play)"
       },
       {
-        "command": "mcpToolExplorer.setClientSecret",
+        "command": "mcpToolXplorer.setClientSecret",
         "title": "Set Client Secret",
-        "category": "MCP Tool Explorer",
+        "category": "MCP Tool Xplorer",
         "icon": "$(key)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "mcpToolExplorer.refresh",
-          "when": "view == mcpToolExplorer.tools",
+          "command": "mcpToolXplorer.refresh",
+          "when": "view == mcpToolXplorer.tools",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "mcpToolExplorer.tryTool",
-          "when": "view == mcpToolExplorer.tools && viewItem == mcpTool",
+          "command": "mcpToolXplorer.tryTool",
+          "when": "view == mcpToolXplorer.tools && viewItem == mcpTool",
           "group": "inline"
         },
         {
-          "command": "mcpToolExplorer.setClientSecret",
-          "when": "view == mcpToolExplorer.tools && viewItem == mcpServerCredentials",
+          "command": "mcpToolXplorer.setClientSecret",
+          "when": "view == mcpToolXplorer.tools && viewItem == mcpServerCredentials",
           "group": "inline"
         }
       ],
       "commandPalette": [
         {
-          "command": "mcpToolExplorer.openTool",
+          "command": "mcpToolXplorer.openTool",
           "when": "false"
         },
         {
-          "command": "mcpToolExplorer.tryTool",
+          "command": "mcpToolXplorer.tryTool",
           "when": "false"
         }
       ]

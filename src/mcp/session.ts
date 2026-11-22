@@ -7,7 +7,7 @@ import { missingClientSecretMessage, redactSecret } from "./credentials.js";
 import { summarizeToolResult, type ToolCallSummary } from "./result.js";
 import { accessTokenFor } from "./token.js";
 
-const CLIENT_INFO = { name: "mcp-tool-explorer", version: "0.1.17" };
+const CLIENT_INFO = { name: "mcp-tool-xplorer", version: "0.1.17" };
 const MAX_PAGES = 64;
 
 /**

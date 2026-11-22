@@ -1,8 +1,8 @@
-# MCP Tool Explorer
+# MCP Tool Xplorer
 
-![MCP Tool Explorer](media/logo.png)
+![MCP Tool Xplorer](media/logo.png)
 
-MCP Tool Explorer lists the tools exposed by the MCP servers already configured for VS Code. Each tool shows its icon beside its name. Click a tool to open its parameters, their datatypes, and the response schema in an editor tab. Another click replaces that tab. Double-click a tool to open a tab that stays open. Try a tool to fill in its parameters in a dialog and see the response.
+MCP Tool Xplorer lists the tools exposed by the MCP servers already configured for VS Code. Each tool shows its icon beside its name. Click a tool to open its parameters, their datatypes, and the response schema in an editor tab. Another click replaces that tab. Double-click a tool to open a tab that stays open. Try a tool to fill in its parameters in a dialog and see the response.
 
 ## What you can do
 
@@ -111,33 +111,33 @@ npm run package
 Install into VS Code:
 
 ```bash
-code --install-extension mcp-tool-explorer-0.1.17.vsix --force
+code --install-extension mcp-tool-xplorer-0.1.17.vsix --force
 ```
 
 Install into Kiro:
 
 ```bash
-kiro --install-extension mcp-tool-explorer-0.1.17.vsix --force
+kiro --install-extension mcp-tool-xplorer-0.1.17.vsix --force
 ```
 
-Reload the window in the editor you installed into. The **MCP Tool Explorer** icon is on the activity bar. If you do not see it, right-click the activity bar and enable **MCP Tool Explorer**.
+Reload the window in the editor you installed into. The **MCP Tool Xplorer** icon is on the activity bar. If you do not see it, right-click the activity bar and enable **MCP Tool Xplorer**.
 
 You can also install the VSIX from the Extensions view in either editor. Open the view menu and choose **Install from VSIX...**.
 
-The installed extension id is `Garrard.mcp-tool-explorer`. The package name is `mcp-tool-explorer`. The publisher id is `Garrard`.
+The installed extension id is `Garrard.mcp-tool-xplorer`. The package name is `mcp-tool-xplorer`. The publisher id is `Garrard`.
 
 ## Uninstall
 
 Uninstall from VS Code:
 
 ```bash
-code --uninstall-extension Garrard.mcp-tool-explorer
+code --uninstall-extension Garrard.mcp-tool-xplorer
 ```
 
 Uninstall from Kiro:
 
 ```bash
-kiro --uninstall-extension Garrard.mcp-tool-explorer
+kiro --uninstall-extension Garrard.mcp-tool-xplorer
 ```
 
 Reload the window in the editor you uninstalled from. Uninstalling from one editor leaves the extension in the other. Neither command deletes the VSIX in this directory.
@@ -147,13 +147,13 @@ For Insiders, use `code-insiders` in the VS Code install and uninstall commands.
 ## Use the view
 
 1. Configure servers in one of the files above, or use **MCP: Add Server** in VS Code.
-2. Open **MCP Tool Explorer** on the activity bar.
+2. Open **MCP Tool Xplorer** on the activity bar.
 3. Expand a server. The extension starts that server, requests `tools/list`, and then closes the connection.
 4. Click a tool once. A tab opens in the editor and shows that tool. Click a different tool and the same tab shows the new tool.
 5. Double-click a tool to open a tab that stays open when you click other tools.
 6. Choose **Try** on the tool row, or the **Try** button in the tool tab. A dialog opens with the parameters. Drag the lower-right corner to resize it. Choose **Run** to call the tool, or **Cancel** to close it. **Previous tries** fills the fields from an earlier run. **Clear fields** empties the dialog without deleting saved tries. **Remove** asks you to confirm before a saved try is deleted.
 
-Use the refresh action on the view title, or run **MCP Tool Explorer: Refresh Servers** from the Command Palette. A server that fails to connect shows the error under its name, including a short stderr tail for a stdio process. Connecting and listing each time out after 20 seconds.
+Use the refresh action on the view title, or run **MCP Tool Xplorer: Refresh Servers** from the Command Palette. A server that fails to connect shows the error under its name, including a short stderr tail for a stdio process. Connecting and listing each time out after 20 seconds.
 
 ## Try a tool
 
@@ -182,7 +182,7 @@ The detail view then shows the arguments that were sent, text content, structure
 2. Run `npm install`.
 3. Press F5, or start the **Run Extension** launch configuration.
 
-F5 compiles the extension and opens an Extension Development Host. The **MCP Tool Explorer** view in that window is this extension.
+F5 compiles the extension and opens an Extension Development Host. The **MCP Tool Xplorer** view in that window is this extension.
 
 ## Machine-to-machine authentication
 
@@ -205,7 +205,7 @@ An HTTP or SSE server with `oauthGrantType` set to `client_credentials` connects
 
 The client secret is not read from the Copilot keychain. Set it in one of these ways:
 
-- Run **MCP Tool Explorer: Set Client Secret**, or use the key icon on that server. The value is stored in VS Code secret storage. Expanding the server asks for it once when nothing is stored yet.
+- Run **MCP Tool Xplorer: Set Client Secret**, or use the key icon on that server. The value is stored in VS Code secret storage. Expanding the server asks for it once when nothing is stored yet.
 - Set `oauthClientSecret` in the MCP config. `${env:NAME}` is substituted. The value stays in memory for the connection and is not shown in the tool view.
 
 A browser OAuth client, including one with only `oauth.clientId` or `oauthGrantType` of `authorization_code`, is shown and is not started. If the server's token endpoint rejects the resource parameter, the request is sent again with the configured scope and without that parameter.

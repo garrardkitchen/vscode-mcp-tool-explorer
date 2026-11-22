@@ -99,7 +99,7 @@ export class ToolDetailPanel {
 
   private createPage(title: string, preserveFocus: boolean): DetailPage {
     const panel = vscode.window.createWebviewPanel(
-      "mcpToolExplorer.detail",
+      "mcpToolXplorer.detail",
       title,
       { viewColumn: vscode.ViewColumn.Active, preserveFocus },
       {
@@ -485,7 +485,7 @@ function formReply(message: unknown): FormReply | undefined {
 }
 
 function unavailableHtml(): string {
-  return messageHtml("This tool is no longer in the list. Refresh MCP Tool Explorer and open it again.");
+  return messageHtml("This tool is no longer in the list. Refresh MCP Tool Xplorer and open it again.");
 }
 
 function messageHtml(message: string): string {

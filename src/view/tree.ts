@@ -87,7 +87,7 @@ class ToolNode extends vscode.TreeItem {
     this.iconPath = tool.iconPath ? vscode.Uri.file(tool.iconPath) : new vscode.ThemeIcon("tools");
     this.accessibilityInformation = { label: `${tool.title || tool.name}, MCP tool` };
     this.command = {
-      command: "mcpToolExplorer.openTool",
+      command: "mcpToolXplorer.openTool",
       title: "Open Tool Details",
       arguments: [server.id, tool.name],
     };

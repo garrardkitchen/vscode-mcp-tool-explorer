@@ -6,8 +6,8 @@ test("client secret storage keys differ by server and client", () => {
   const first = clientSecretStorageKey("origin::entra", "app-1");
   const second = clientSecretStorageKey("origin::entra", "app-2");
   assert.notEqual(first, second);
-  assert.match(first, /^mcpToolExplorer\.clientSecret\0origin::entra\0app-1$/);
-  assert.match(second, /^mcpToolExplorer\.clientSecret\0origin::entra\0app-2$/);
+  assert.match(first, /^mcpToolXplorer\.clientSecret\0origin::entra\0app-1$/);
+  assert.match(second, /^mcpToolXplorer\.clientSecret\0origin::entra\0app-2$/);
 });
 
 test("redacts a client secret and recognizes a rejected resource parameter", () => {

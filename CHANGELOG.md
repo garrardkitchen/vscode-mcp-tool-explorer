@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to MCP Tool Explorer are documented in this file.
+All notable changes to MCP Tool Xplorer are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -13,6 +13,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Documented local install and uninstall for both VS Code and Kiro.
 - Added the changelog, security policy, contributing guide, code of conduct, and GitHub issue and pull request templates.
 - Added AGENTS.md with the repository layout, commit rules, dependencies, and the tool-call flow.
+
+### Changed
+
+- Renamed the extension to MCP Tool Xplorer. The package name is `mcp-tool-xplorer` and the extension id is `Garrard.mcp-tool-xplorer`.
 
 ## [0.1.17] - 2026-11-22
 

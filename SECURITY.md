@@ -1,6 +1,6 @@
 # Security policy
 
-MCP Tool Explorer is a local VS Code extension. It reads MCP config files you already have, lists tools, and calls a tool only when you choose Try.
+MCP Tool Xplorer is a local VS Code extension. It reads MCP config files you already have, lists tools, and calls a tool only when you choose Try.
 
 ## Supported versions
 

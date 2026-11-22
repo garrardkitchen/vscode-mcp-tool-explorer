@@ -37,4 +37,4 @@ Do not commit:
 - client secrets, tokens, or real authorization headers
 - `node_modules/`, `dist/`, or `*.vsix`
 
-The package name is `mcp-tool-explorer`. The extension id is `Garrard.mcp-tool-explorer`. The publisher id is `Garrard`.
+The package name is `mcp-tool-xplorer`. The extension id is `Garrard.mcp-tool-xplorer`. The publisher id is `Garrard`.

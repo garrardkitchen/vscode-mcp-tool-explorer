@@ -189,7 +189,7 @@ test("reports the wrong top-level key", () => {
 });
 
 test("finds profile, workspace, and copilot config paths", () => {
-  const storage = "/Users/me/Library/Application Support/Code/User/profiles/abc/globalStorage/Garrard.mcp-tool-explorer";
+  const storage = "/Users/me/Library/Application Support/Code/User/profiles/abc/globalStorage/Garrard.mcp-tool-xplorer";
   assert.equal(profileDirectoryFromGlobalStorage(storage), "/Users/me/Library/Application Support/Code/User/profiles/abc");
 
   const origins = candidateOrigins({
@@ -207,7 +207,7 @@ test("finds profile, workspace, and copilot config paths", () => {
 });
 
 test("loadConfigs reads each supported file", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "mcp-explorer-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "mcp-xplorer-"));
   try {
     const workspace = path.join(root, "app");
     const profile = path.join(root, "profile");

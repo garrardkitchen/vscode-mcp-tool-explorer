@@ -6,7 +6,7 @@ This project is one extension and a small set of issues and pull requests. Treat
 
 - Assume good faith.
 - Critique the change, not the person.
-- Stay on the subject of MCP Tool Explorer.
+- Stay on the subject of MCP Tool Xplorer.
 
 ## Not acceptable
 

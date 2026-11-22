@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: MCP Tool Explorer did something other than what the README describes
+about: MCP Tool Xplorer did something other than what the README describes
 title: ""
 labels: bug
 assignees: garrardkitchen
@@ -12,7 +12,7 @@ assignees: garrardkitchen
 
 ## Versions
 
-- MCP Tool Explorer:
+- MCP Tool Xplorer:
 - VS Code:
 - Operating system:
 

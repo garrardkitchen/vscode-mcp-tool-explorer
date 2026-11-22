@@ -1,4 +1,4 @@
-const SECRET_KEY_PREFIX = "mcpToolExplorer.clientSecret";
+const SECRET_KEY_PREFIX = "mcpToolXplorer.clientSecret";
 
 /** VS Code secret-storage key for one server's client secret. */
 export function clientSecretStorageKey(serverId: string, clientId: string): string {
@@ -6,7 +6,7 @@ export function clientSecretStorageKey(serverId: string, clientId: string): stri
 }
 
 export function missingClientSecretMessage(serverName: string): string {
-  return `${serverName} uses a client credentials grant, and no client secret is stored. Run MCP Tool Explorer: Set Client Secret. The secret is kept in VS Code secret storage. You can also set oauthClientSecret, including \${env:NAME}.`;
+  return `${serverName} uses a client credentials grant, and no client secret is stored. Run MCP Tool Xplorer: Set Client Secret. The secret is kept in VS Code secret storage. You can also set oauthClientSecret, including \${env:NAME}.`;
 }
 
 /** Removes a client secret from an error message before it is shown. */

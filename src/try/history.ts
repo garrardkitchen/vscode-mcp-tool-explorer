@@ -6,8 +6,8 @@ export const TRY_DIALOG_MIN_PX = 280;
 /** Largest dialog edge stored from a resize, in CSS pixels. */
 export const TRY_DIALOG_MAX_PX = 4000;
 
-const STATE_KEY = "mcpToolExplorer.savedTries";
-const SIZE_KEY = "mcpToolExplorer.tryDialogSize";
+const STATE_KEY = "mcpToolXplorer.savedTries";
+const SIZE_KEY = "mcpToolXplorer.tryDialogSize";
 
 export interface TryDialogSize {
   width: number;

@@ -1,8 +1,8 @@
 # AGENTS.md
 
-MCP Tool Explorer is a local VS Code extension. It lists tools from MCP servers you already configured, shows each tool's icon and schemas, and calls a tool only when you choose Try.
+MCP Tool Xplorer is a local VS Code extension. It lists tools from MCP servers you already configured, shows each tool's icon and schemas, and calls a tool only when you choose Try.
 
-Read this before you change the repo. The extension id is `Garrard.mcp-tool-explorer`. The package name is `mcp-tool-explorer`. The publisher id is `Garrard`. The current version is `0.1.17`.
+Read this before you change the repo. The extension id is `Garrard.mcp-tool-xplorer`. The package name is `mcp-tool-xplorer`. The publisher id is `Garrard`. The current version is `0.1.17`.
 
 ## Rules for every change
 
@@ -23,7 +23,7 @@ npm run compile
 npm run package
 ```
 
-`npm test` runs `node --import tsx --test tests/*.test.ts`. `npm run compile` bundles `src/extension.ts` to `dist/extension.js`. Press F5 for an Extension Development Host. Install a built package with `code --install-extension mcp-tool-explorer-<version>.vsix --force`, then reload the window.
+`npm test` runs `node --import tsx --test tests/*.test.ts`. `npm run compile` bundles `src/extension.ts` to `dist/extension.js`. Press F5 for an Extension Development Host. Install a built package with `code --install-extension mcp-tool-xplorer-<version>.vsix --force`, then reload the window.
 
 ## Layout
 
@@ -68,7 +68,7 @@ npm run package
 
 `esbuild.js` bundles to CommonJS. `vscode` stays external. `mainFields` is `["module", "main"]` so `jsonc-parser` uses its ESM build. The UMD build breaks once it is bundled.
 
-Commands use the `mcpToolExplorer` prefix. The tree node type is `ExplorerNode`. The webview type is `mcpToolExplorer.detail`. The view id is `mcpToolExplorer.tools`.
+Commands use the `mcpToolXplorer` prefix. The tree node type is `ExplorerNode`. The webview type is `mcpToolXplorer.detail`. The view id is `mcpToolXplorer.tools`.
 
 ## Dependencies
 
@@ -92,7 +92,7 @@ Development:
 | `@types/vscode` | 1.95 | VS Code API types. The engine is `^1.95.0` |
 | `@vscode/vsce` | 3.9.2 | `npm run package` |
 
-Node.js 20 or newer. The MCP client identity in `src/mcp/session.ts` is `{ name: "mcp-tool-explorer", version }` and must match `package.json`.
+Node.js 20 or newer. The MCP client identity in `src/mcp/session.ts` is `{ name: "mcp-tool-xplorer", version }` and must match `package.json`.
 
 ## Core flow
 
@@ -100,7 +100,7 @@ Config is read from four places. A client secret comes from the config file when
 
 Expanding a server connects, follows `tools/list` cursors, and closes. That path does not call a tool. Try opens a new session, calls that one tool, and closes. Connecting times out after 20 seconds. The call times out after 60 seconds.
 
-Saved try values and the dialog size are in VS Code global state (`mcpToolExplorer.savedTries`, `mcpToolExplorer.tryDialogSize`). They are not in secret storage.
+Saved try values and the dialog size are in VS Code global state (`mcpToolXplorer.savedTries`, `mcpToolXplorer.tryDialogSize`). They are not in secret storage.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'darkMode': true, 'background': '#12161a', 'fontFamily': 'Segoe UI, sans-serif', 'fontSize': '16px', 'primaryTextColor': '#F4F1EA', 'primaryBorderColor': '#E39A3C', 'lineColor': '#E39A3C', 'textColor': '#F4F1EA'}}}%%
@@ -124,7 +124,7 @@ flowchart TB
     direction LR
     INFILE["oauthClientSecret in the config<br/>this value wins"]
     KEY["Key icon or Set Client Secret"]
-    VAULT["VS Code secret storage<br/>mcpToolExplorer.clientSecret"]
+    VAULT["VS Code secret storage<br/>mcpToolXplorer.clientSecret"]
     KEY --> VAULT
   end
 
