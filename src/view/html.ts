@@ -1,4 +1,5 @@
 import type { ParameterPrompt } from "../try/parameters.js";
+import { readDialogSize, type SavedTry } from "../try/history.js";
 import type { SchemaField } from "../types.js";
 import { inlineToolSvg } from "./svg.js";
 
@@ -34,6 +35,10 @@ export interface TryFormModel {
   answers?: Record<string, string>;
   errors?: Record<string, string>;
   fixedNote?: string;
+  /** Newest saved try first. */
+  history?: SavedTry[];
+  /** Last size the user set for the try dialog, in CSS pixels. */
+  dialogSize?: { width: number; height: number };
 }
 
 export interface DetailCall {
@@ -130,27 +135,40 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
       outline-offset: 2px;
     }
     .call-error { color: var(--vscode-errorForeground); }
-    .try-dialog {
+    dialog.try-dialog {
+      box-sizing: border-box;
       padding: 0;
       border: 1px solid var(--vscode-contrastBorder, var(--vscode-widget-border, transparent));
       border-top: 3px solid var(--vscode-button-background);
       border-radius: 8px;
-      background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-      color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
-      width: min(34rem, calc(100vw - 32px));
-      max-height: min(80vh, 760px);
+      background: var(--vscode-editorWidget-background, var(--vscode-editor-background, Canvas));
+      color: var(--vscode-editorWidget-foreground, var(--vscode-foreground, CanvasText));
       box-shadow: 0 16px 48px var(--vscode-widget-shadow);
     }
-    .try-dialog::backdrop {
+    /* The user agent pins both insets and scrolls the dialog. A definite size
+       and hidden overflow let the corner grip resize the box instead. */
+    dialog.try-dialog:modal {
+      overflow: hidden;
+      resize: both;
+      width: min(42rem, calc(100vw - 40px));
+      height: min(88vh, 900px);
+      min-width: min(22rem, calc(100vw - 16px));
+      min-height: min(24rem, calc(100vh - 16px));
+      max-width: calc(100vw - 16px);
+      max-height: calc(100vh - 16px);
+    }
+    dialog.try-dialog::backdrop {
       background: #0006;
     }
-    .try-dialog form {
+    dialog.try-dialog form {
       display: flex;
       flex-direction: column;
-      max-height: min(80vh, 760px);
+      height: 100%;
+      min-height: 0;
       margin: 0;
+      overflow: hidden;
     }
-    .try-head, .try-footer { flex: none; }
+    .try-head, .try-footer, .try-history { flex: 0 0 auto; }
     .try-head { padding: 18px 22px 8px; }
     .try-head h2 {
       margin: 0;
@@ -165,26 +183,30 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
       color: var(--vscode-descriptionForeground);
     }
     .fixed-note { margin: 8px 0 0; color: var(--vscode-descriptionForeground); overflow-wrap: anywhere; }
+    /* Overflow on a column flex item paints the first field over the history
+       note. This item only takes the free space. Its child is a block scroller. */
     .try-fields {
       flex: 1 1 auto;
       min-height: 0;
+      overflow: hidden;
+    }
+    .try-fields-scroll {
+      height: 100%;
+      box-sizing: border-box;
       overflow: auto;
       padding: 8px 22px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
     }
     .field {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin: 0;
+      margin: 0 0 16px;
       padding: 0 0 16px;
       border: none;
       border-bottom: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.28));
       min-inline-size: 0;
     }
-    .try-fields .field:last-child { border-bottom: none; padding-bottom: 0; }
+    .try-fields .field:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     .field-head {
       display: flex;
       justify-content: space-between;
@@ -247,7 +269,7 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
       justify-content: flex-end;
       flex-wrap: wrap;
       gap: 8px;
-      padding: 12px 22px 16px;
+      padding: 12px 36px 22px 22px;
       border-top: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.35));
     }
     .try-dialog button { min-width: 5.5rem; border: 1px solid var(--vscode-button-border, transparent); }
@@ -256,6 +278,40 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
       color: var(--vscode-button-secondaryForeground);
     }
     button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    button:disabled { opacity: 0.55; cursor: default; }
+    .history-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 4px 22px 10px;
+    }
+    .history-bar label {
+      grid-column: 1 / -1;
+      color: var(--vscode-descriptionForeground);
+      font-size: 0.85em;
+    }
+    .delete-confirm {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 22px 10px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      background: var(--vscode-inputValidation-warningBackground, var(--vscode-editorWarning-background, rgba(127, 127, 127, 0.16)));
+      color: var(--vscode-inputValidation-warningForeground, var(--vscode-foreground));
+    }
+    .try-history { min-width: 0; }
+    .history-help {
+      margin: 0;
+      padding: 0 22px 12px;
+      color: var(--vscode-descriptionForeground);
+    }
+    .delete-confirm[hidden] { display: none; }
+    .delete-confirm p { margin: 0; flex: 1 1 12rem; }
+    .try-footer .clear-fields { margin-right: auto; }
+    ${savedDialogSizeCss(model.tryForm?.dialogSize)}
   </style>
 </head>
 <body>
@@ -289,6 +345,7 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
     const form = document.getElementById("try-form");
     if (dialog instanceof HTMLDialogElement && form instanceof HTMLFormElement) {
       dialog.showModal();
+      wireDialogResize(vscode, dialog);
       let sent = false;
       const finish = (command) => {
         if (sent) return;
@@ -305,13 +362,177 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
         event.preventDefault();
         finish("submitTry");
       });
+      wireSavedTries(vscode, form);
+      const scroller = document.querySelector(".try-fields-scroll");
+      if (scroller instanceof HTMLElement) {
+        const pinTop = () => { scroller.scrollTop = 0; };
+        pinTop();
+        requestAnimationFrame(pinTop);
+      }
       document.getElementById("try-cancel")?.addEventListener("click", () => finish("cancelTry"));
+      let suppressDismiss = false;
+      let widthAtPress = dialog.offsetWidth;
+      let heightAtPress = dialog.offsetHeight;
+      dialog.addEventListener("pointerdown", (event) => {
+        const rect = dialog.getBoundingClientRect();
+        widthAtPress = dialog.offsetWidth;
+        heightAtPress = dialog.offsetHeight;
+        suppressDismiss = event.clientX >= rect.right - 28 && event.clientY >= rect.bottom - 28;
+      }, true);
+      const noteResize = () => {
+        if (Math.abs(dialog.offsetWidth - widthAtPress) > 1 || Math.abs(dialog.offsetHeight - heightAtPress) > 1) {
+          suppressDismiss = true;
+        }
+        window.setTimeout(() => { suppressDismiss = false; }, 0);
+      };
+      window.addEventListener("pointerup", noteResize);
+      window.addEventListener("pointercancel", noteResize);
       dialog.addEventListener("cancel", (event) => {
         event.preventDefault();
+        if (suppressDismiss) return;
         finish("cancelTry");
       });
       dialog.addEventListener("click", (event) => {
-        if (event.target === dialog) finish("cancelTry");
+        if (suppressDismiss) return;
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const outside = event.clientX < rect.left || event.clientX > rect.right
+          || event.clientY < rect.top || event.clientY > rect.bottom;
+        if (outside) finish("cancelTry");
+      });
+    }
+
+    function wireDialogResize(vscodeApi, dialogEl) {
+      if (typeof ResizeObserver !== "function") return;
+      let primed = dialogEl.offsetWidth >= 280 && dialogEl.offsetHeight >= 280;
+      let lastWidth = primed ? Math.round(dialogEl.offsetWidth) : 0;
+      let lastHeight = primed ? Math.round(dialogEl.offsetHeight) : 0;
+      let timer = 0;
+      const observer = new ResizeObserver(() => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          const width = Math.round(dialogEl.offsetWidth);
+          const height = Math.round(dialogEl.offsetHeight);
+          if (width < 280 || height < 280 || width > 4000 || height > 4000) return;
+          if (!primed) {
+            primed = true;
+            lastWidth = width;
+            lastHeight = height;
+            return;
+          }
+          if (Math.abs(width - lastWidth) < 2 && Math.abs(height - lastHeight) < 2) return;
+          lastWidth = width;
+          lastHeight = height;
+          vscodeApi.postMessage({ command: "resizeTry", width: width, height: height });
+        }, 250);
+      });
+      observer.observe(dialogEl);
+    }
+
+    function wireSavedTries(vscodeApi, tryForm) {
+      const dataNode = document.getElementById("try-history-data");
+      const select = document.getElementById("try-history");
+      const removeButton = document.getElementById("try-remove");
+      const confirm = document.getElementById("try-delete-confirm");
+      if (!(select instanceof HTMLSelectElement) || !(removeButton instanceof HTMLButtonElement)) {
+        return;
+      }
+      let saved = { entries: [], fresh: {} };
+      try {
+        saved = JSON.parse(dataNode?.textContent || "{}");
+      } catch (error) {
+        saved = { entries: [], fresh: {} };
+      }
+      const entries = Array.isArray(saved.entries) ? saved.entries : [];
+      const fresh = saved.fresh && typeof saved.fresh === "object" ? saved.fresh : {};
+      let pendingId = "";
+
+      const hideConfirm = () => {
+        pendingId = "";
+        confirm?.setAttribute("hidden", "");
+      };
+      const applyAnswers = (answers) => {
+        const values = answers && typeof answers === "object" ? answers : {};
+        for (const element of tryForm.elements) {
+          if (!element.name) continue;
+          const hasSaved = Object.prototype.hasOwnProperty.call(values, element.name);
+          const next = hasSaved ? values[element.name] : fresh[element.name];
+          const value = typeof next === "string" ? next : "";
+          if (element instanceof HTMLInputElement && element.type === "radio") {
+            element.checked = element.value === value;
+          } else if ("value" in element) {
+            element.value = value;
+          }
+        }
+        document.querySelectorAll(".field-error").forEach((node) => node.remove());
+        document.querySelectorAll("[aria-invalid='true']").forEach((node) => node.removeAttribute("aria-invalid"));
+      };
+      const labelFor = (entry) => {
+        const when = new Date(entry.savedAt);
+        const time = Number.isNaN(when.getTime()) ? String(entry.savedAt || "Saved try") : when.toLocaleString();
+        const answers = entry.answers && typeof entry.answers === "object" ? entry.answers : {};
+        const preview = Object.entries(answers)
+          .filter((pair) => typeof pair[1] === "string" && pair[1] !== "")
+          .map((pair) => pair[0] + "=" + pair[1])
+          .join(", ");
+        if (!preview) return time;
+        return preview.length > 72 ? time + " — " + preview.slice(0, 69) + "..." : time + " — " + preview;
+      };
+      const showEmpty = () => {
+        select.replaceChildren();
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No previous tries";
+        select.append(option);
+        select.disabled = true;
+        select.value = "";
+        removeButton.disabled = true;
+      };
+      if (entries.length === 0) {
+        showEmpty();
+      } else {
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Choose a previous try";
+        select.append(placeholder);
+        for (const entry of entries) {
+          if (!entry || typeof entry.id !== "string") continue;
+          const option = document.createElement("option");
+          option.value = entry.id;
+          option.textContent = labelFor(entry);
+          select.append(option);
+        }
+      }
+      select.addEventListener("change", () => {
+        hideConfirm();
+        const entry = entries.find((item) => item && item.id === select.value);
+        removeButton.disabled = !entry;
+        if (entry) applyAnswers(entry.answers);
+      });
+      document.getElementById("try-clear")?.addEventListener("click", () => {
+        hideConfirm();
+        select.value = "";
+        removeButton.disabled = true;
+        applyAnswers(fresh);
+      });
+      removeButton.addEventListener("click", () => {
+        if (select.value === "") return;
+        pendingId = select.value;
+        confirm?.removeAttribute("hidden");
+      });
+      document.getElementById("try-delete-keep")?.addEventListener("click", hideConfirm);
+      document.getElementById("try-delete-yes")?.addEventListener("click", () => {
+        if (pendingId === "") return;
+        const id = pendingId;
+        hideConfirm();
+        vscodeApi.postMessage({ command: "removeTry", id });
+        const index = entries.findIndex((item) => item && item.id === id);
+        if (index >= 0) entries.splice(index, 1);
+        const option = Array.from(select.options).find((item) => item.value === id);
+        option?.remove();
+        select.value = "";
+        removeButton.disabled = true;
+        if (entries.length === 0) showEmpty();
       });
     }
   </script>
@@ -334,7 +555,7 @@ function iconMarkup(model: DetailModel): string {
 
 function trySection(model: DetailModel): string {
   const intro = `<h2>Try</h2>
-    <p class="meta">Try opens a dialog with every parameter. Run calls the tool and shows the response here. Cancel leaves the tool uncalled.</p>
+    <p class="meta">Try opens a dialog with every parameter. Drag the lower-right corner to resize it. That size is used the next time the dialog opens. Previous tries for this tool can fill the fields again. Run calls the tool and shows the response here. Cancel leaves the tool uncalled.</p>
     <p><button type="button" id="try-tool">Try</button></p>`;
   return model.call ? `${intro}${callSection(model.call)}` : intro;
 }
@@ -399,8 +620,10 @@ function tryDialog(form: TryFormModel): string {
   const focusIndex = focusField(prompts, form.errors);
   const fields = prompts.map((prompt, index) => fieldBlock(prompt, index, form, index === focusIndex)).join("");
   const fixed = form.fixedNote ? `<p class="fixed-note">${escapeHtml(form.fixedNote)}</p>` : "";
-  const body = fields.length > 0 ? `<div class="try-fields">${fields}</div>` : "";
+  const body = fields.length > 0 ? `<div class="try-fields"><div class="try-fields-scroll">${fields}</div></div>` : "";
   const runFocus = focusIndex < 0 ? " autofocus" : "";
+  const history = prompts.length > 0 ? historyControls(form) : "";
+  const clear = prompts.length > 0 ? `<button type="button" id="try-clear" class="secondary clear-fields">Clear fields</button>` : "";
   return `<dialog id="try-dialog" class="try-dialog" aria-labelledby="try-title" aria-describedby="try-lede">
     <form id="try-form" autocomplete="off">
       <div class="try-head">
@@ -408,13 +631,68 @@ function tryDialog(form: TryFormModel): string {
         <p id="try-lede" class="lede">${escapeHtml(formLede(prompts))}</p>
         ${fixed}
       </div>
+      ${history}
       ${body}
       <div class="try-footer">
+        ${clear}
         <button type="button" id="try-cancel" class="secondary">Cancel</button>
         <button type="submit" id="try-run"${runFocus}>Run</button>
       </div>
     </form>
   </dialog>`;
+}
+
+function historyControls(form: TryFormModel): string {
+  const payload = safeJson({
+    entries: form.history ?? [],
+    fresh: freshAnswers(form.prompts),
+  });
+  return `<div class="try-history">
+    <div class="history-bar">
+      <label for="try-history">Previous tries</label>
+      <select id="try-history" aria-describedby="try-history-help"></select>
+      <button type="button" id="try-remove" class="secondary" disabled>Remove</button>
+    </div>
+    <p id="try-history-help" class="history-help">Choose a saved try to fill these fields. Clear fields starts this try over without deleting saved tries.</p>
+    <div id="try-delete-confirm" class="delete-confirm" hidden>
+      <p>Remove this saved try?</p>
+      <button type="button" id="try-delete-keep" class="secondary">Keep</button>
+      <button type="button" id="try-delete-yes">Remove</button>
+    </div>
+    <script type="application/json" id="try-history-data">${payload}</script>
+  </div>`;
+}
+
+function savedDialogSizeCss(size: unknown): string {
+  const parsed = readDialogSize(size);
+  if (!parsed) {
+    return "";
+  }
+  return `dialog#try-dialog.try-dialog {
+      width: min(${parsed.width}px, calc(100vw - 16px));
+      height: min(${parsed.height}px, calc(100vh - 16px));
+    }`;
+}
+
+function freshAnswers(prompts: ParameterPrompt[]): Record<string, string> {
+  const fresh: Record<string, string> = {};
+  for (const prompt of prompts) {
+    fresh[prompt.name] = freshValue(prompt);
+  }
+  return fresh;
+}
+
+function freshValue(prompt: ParameterPrompt): string {
+  const choices = prompt.choices ?? [];
+  const usesChoices = (prompt.kind === "boolean" || prompt.kind === "enum") && choices.length > 0;
+  if (usesChoices) {
+    return "";
+  }
+  return prompt.prefill ?? "";
+}
+
+function safeJson(value: unknown): string {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
 function formLede(prompts: ParameterPrompt[]): string {

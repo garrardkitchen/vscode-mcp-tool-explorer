@@ -10,7 +10,7 @@ MCP Tool Explorer lists the tools exposed by the MCP servers already configured 
 - Expand a server to connect and list its tools in alphabetical order. A tool with a title is ordered by that title, and letter case is ignored. The connection closes after the list is read.
 - Read the tool icon next to the tool name. A tool without a usable icon uses the built-in tools icon.
 - Click a tool once to open its icon, description, parameters, and response schema in an editor tab. Clicking a different tool replaces that tab. Double-click a tool to open a tab that stays open when you click other tools.
-- Try a tool. A dialog lists every parameter. Run calls the tool and shows the response in the detail view. Cancel does not call it.
+- Try a tool. A dialog lists every parameter. Run calls the tool and shows the response in the detail view. Cancel does not call it. Drag the lower-right corner to resize the dialog. That size is used the next time it opens. A run saves those parameter values for that tool. Choose a previous try to fill the dialog again, clear the fields to start over, or remove a saved try after confirming.
 - Refresh the list after you change a config file. The view also reloads when those files change.
 - Connect an HTTP server that uses a machine-to-machine client credentials grant. A browser sign-in is not started.
 
@@ -104,7 +104,7 @@ Package a VSIX and install it into VS Code:
 
 ```bash
 npm run package
-code --install-extension mcp-tool-explorer-0.1.14.vsix --force
+code --install-extension mcp-tool-explorer-0.1.17.vsix --force
 ```
 
 Reload the window. The **MCP Tool Explorer** icon is on the activity bar. If you do not see it, right-click the activity bar and enable **MCP Tool Explorer**.
@@ -128,7 +128,7 @@ For Insiders, use `code-insiders` in the install and uninstall commands.
 3. Expand a server. The extension starts that server, requests `tools/list`, and then closes the connection.
 4. Click a tool once. A tab opens in the editor and shows that tool. Click a different tool and the same tab shows the new tool.
 5. Double-click a tool to open a tab that stays open when you click other tools.
-6. Choose **Try** on the tool row, or the **Try** button in the tool tab. A dialog opens with the parameters. Choose **Run** to call the tool, or **Cancel** to close it.
+6. Choose **Try** on the tool row, or the **Try** button in the tool tab. A dialog opens with the parameters. Drag the lower-right corner to resize it. Choose **Run** to call the tool, or **Cancel** to close it. **Previous tries** fills the fields from an earlier run. **Clear fields** empties the dialog without deleting saved tries. **Remove** asks you to confirm before a saved try is deleted.
 
 Use the refresh action on the view title, or run **MCP Tool Explorer: Refresh Servers** from the Command Palette. A server that fails to connect shows the error under its name, including a short stderr tail for a stdio process. Connecting and listing each time out after 20 seconds.
 
@@ -146,6 +146,10 @@ The dialog follows the tool's input schema:
 - A parameter with a single fixed `const` value is not shown. It is sent automatically.
 - For a nullable number, integer, object, or array, enter `null` to send JSON null.
 - A field that cannot be read is marked in the dialog. The tool is not called until every field is valid.
+- A successful run saves the parameter values for that tool on this machine. A run whose values match the newest saved try is not stored again. The dialog keeps up to 20 tries, newest first.
+- **Previous tries** lists those saved runs. Choosing one fills the fields. The note under the list sits above the parameter fields. **Clear fields** restores the dialog to its unused state and leaves the saved tries in place.
+- Drag the lower-right corner of the dialog to change its size. The dialog stays open while you resize it. The next try dialog opens at that size. The size is stored on this machine, with the saved tries, and it is the same for every tool.
+- **Remove** asks "Remove this saved try?" Choose **Remove** to delete that entry, or **Keep** to leave it. The fields you are editing stay as they are.
 
 The detail view then shows the arguments that were sent, text content, structured content, and any error. Image, audio, and binary resource bytes are described and are not inlined. A long response is cut after 200,000 characters. Connecting times out after 20 seconds. The call times out after 60 seconds. A server that the list cannot start, such as one waiting on `${input:...}` or a browser sign-in, cannot be tried.
 

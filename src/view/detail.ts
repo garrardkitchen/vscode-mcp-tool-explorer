@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import type { IconTheme, ServerCatalog } from "../catalog.js";
 import type { ToolCallSummary } from "../mcp/result.js";
 import { schemaFields } from "../schema/fields.js";
+import { readDialogSize, TryHistoryStore } from "../try/history.js";
 import { argumentPlan, collectFromAnswers, fixedArgumentNote } from "../try/parameters.js";
 import type { CachedTool, ResolvedServer } from "../types.js";
 import { renderDetailHtml, type DetailCall, type TryFormModel } from "./html.js";
@@ -22,6 +23,7 @@ export class ToolDetailPanel {
     private readonly context: vscode.ExtensionContext,
     private readonly catalog: ServerCatalog,
     private readonly theme: () => IconTheme,
+    private readonly history: TryHistoryStore,
   ) {}
 
   async show(serverId: string, toolName: string, pin = false): Promise<void> {
@@ -106,7 +108,7 @@ export class ToolDetailPanel {
         localResourceRoots: [this.context.globalStorageUri],
       },
     );
-    const page = new DetailPage(panel, this.catalog, this.theme, () => {
+    const page = new DetailPage(panel, this.catalog, this.theme, this.history, () => {
       void this.tryPage(page);
     });
     panel.onDidDispose(() => {
@@ -136,9 +138,22 @@ class DetailPage {
     private readonly panel: vscode.WebviewPanel,
     private readonly catalog: ServerCatalog,
     private readonly theme: () => IconTheme,
+    private readonly history: TryHistoryStore,
     onTry: () => void,
   ) {
     const messages = panel.webview.onDidReceiveMessage((message: unknown) => {
+      const removed = removeTryId(message);
+      if (removed && this.current) {
+        void this.history.remove(this.current.serverId, this.current.toolName, removed);
+        return;
+      }
+      if (isDialogResize(message)) {
+        const size = readDialogSize(message);
+        if (size) {
+          void this.history.rememberDialogSize(size);
+        }
+        return;
+      }
       const reply = formReply(message);
       if (reply) {
         this.takeForm(reply);
@@ -251,6 +266,8 @@ class DetailPage {
         answers,
         errors,
         fixedNote: fixedArgumentNote(plan.fixed),
+        history: plan.prompts.length > 0 ? this.history.list(serverId, toolName) : undefined,
+        dialogSize: this.history.dialogSize(),
       };
       await this.render(serverId, toolName, { tryForm: form });
       if (this.disposed || !this.matches(serverId, toolName)) {
@@ -261,6 +278,12 @@ class DetailPage {
         return { status: "cancelled" };
       }
       const collected = collectFromAnswers(schema, reply.answers);
+      if (collected.status === "ready" && plan.prompts.length > 0) {
+        await this.history.remember(serverId, toolName, reply.answers, {
+          id: randomBytes(8).toString("hex"),
+          savedAt: new Date().toISOString(),
+        });
+      }
       if (collected.status !== "invalid") {
         return collected;
       }
@@ -414,8 +437,23 @@ type FormReply =
   | { command: "submitTry"; answers: Record<string, string> }
   | { command: "cancelTry" };
 
+function removeTryId(message: unknown): string | undefined {
+  if (!message || typeof message !== "object") {
+    return undefined;
+  }
+  if ((message as { command?: unknown }).command !== "removeTry") {
+    return undefined;
+  }
+  const id = (message as { id?: unknown }).id;
+  return typeof id === "string" && id.length > 0 ? id : undefined;
+}
+
 function isTryMessage(message: unknown): boolean {
   return !!message && typeof message === "object" && (message as { command?: unknown }).command === "try";
+}
+
+function isDialogResize(message: unknown): boolean {
+  return !!message && typeof message === "object" && (message as { command?: unknown }).command === "resizeTry";
 }
 
 function formReply(message: unknown): FormReply | undefined {

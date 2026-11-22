@@ -2,7 +2,7 @@
   "name": "mcp-tool-explorer",
   "displayName": "MCP Tool Explorer",
   "description": "Browse tools from the MCP servers configured in VS Code, inspect each tool's icon, parameter datatypes, and response schema, try a tool from a parameter dialog, and connect a machine-to-machine client credentials grant.",
-  "version": "0.1.14",
+  "version": "0.1.17",
   "publisher": "Garrard",
   "icon": "media/icon.png",
   "license": "MIT",

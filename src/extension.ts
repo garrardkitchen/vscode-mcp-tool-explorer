@@ -6,6 +6,7 @@ import { iconCacheDirectory, ServerCatalog, type IconTheme } from "./catalog.js"
 import { copilotConfigFile, profileDirectoryFromGlobalStorage } from "./config/origins.js";
 import { clientSecretStorageKey } from "./mcp/credentials.js";
 import type { ResolvedServer } from "./types.js";
+import { TryHistoryStore } from "./try/history.js";
 import { ToolDetailPanel } from "./view/detail.js";
 import { classifyToolClick, type ToolClickState } from "./view/open.js";
 import { invocationFromTreeItem, ToolTreeProvider } from "./view/tree.js";
@@ -30,7 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
       : "dark";
   };
   const tree = new ToolTreeProvider(catalog, theme);
-  const detail = new ToolDetailPanel(context, catalog, theme);
+  const detail = new ToolDetailPanel(context, catalog, theme, new TryHistoryStore(context.globalState));
   let toolClicks: ToolClickState = {};
   const refreshSoon = debounce(() => tree.refresh(), 300);
   const workspaceWatchers: vscode.Disposable[] = [];

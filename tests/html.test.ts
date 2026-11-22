@@ -118,6 +118,20 @@ test("opens a try dialog with every field, run, and cancel", () => {
   assert.match(html, /showModal/);
   assert.match(html, /submitTry/);
   assert.match(html, /cancelTry/);
+  assert.match(html, /id="try-history"/);
+  assert.match(html, /class="try-history"[\s\S]*id="try-history-help"[\s\S]*class="try-fields"/);
+  assert.match(html, /resize: both/);
+  assert.match(html, /height: min\(88vh, 900px\)/);
+  assert.match(html, /resizeTry/);
+  assert.match(html, /suppressDismiss/);
+  assert.match(html, /event\.clientX < rect\.left/);
+  assert.match(html, /\.try-head, \.try-footer, \.try-history \{ flex: 0 0 auto; \}/);
+  assert.match(html, /id="try-clear"[^>]*>Clear fields</);
+  assert.match(html, /id="try-remove"[^>]*disabled>Remove</);
+  assert.match(html, /id="try-delete-confirm"[^>]*hidden/);
+  assert.match(html, /Remove this saved try\?/);
+  assert.match(html, /id="try-delete-keep"/);
+  assert.match(html, /removeTry/);
   assert.doesNotMatch(html, /Skip/);
   assert.doesNotMatch(html, /<script>/);
 });
@@ -191,5 +205,84 @@ test("confirms a tool that has no parameters", () => {
   assert.match(html, /This tool takes no parameters/);
   assert.match(html, /id="try-run" autofocus>Run</);
   assert.match(html, /id="try-cancel"/);
+  assert.match(html, /resize: both/);
   assert.doesNotMatch(html, /class="try-fields"/);
+  assert.doesNotMatch(html, /id="try-history"/);
+  assert.doesNotMatch(html, /class="try-history"/);
+});
+
+test("embeds saved tries without letting their text run", () => {
+  const html = renderDetailHtml({
+    serverName: "memory",
+    serverTransport: "stdio",
+    serverFile: "/work/.vscode/mcp.json",
+    originLabel: "Workspace",
+    toolName: "echo",
+    title: "Echo",
+    parameters: [],
+    parameterSchema: { type: "object" },
+    tryForm: {
+      title: "Echo",
+      prompts: [{
+        name: "text",
+        required: true,
+        kind: "string",
+        typeLabel: "string",
+        nullable: false,
+        container: "any",
+      }],
+      history: [{
+        id: "try-1",
+        savedAt: "2026-11-22T12:00:00.000Z",
+        answers: { text: `</script><img src=x onerror=alert(1)>` },
+      }],
+    },
+  }, "nonce", "vscode-webview:");
+
+  assert.match(html, /\\u003c\/script&gt;|\\u003c\/script>/);
+  assert.match(html, /try-1/);
+  assert.doesNotMatch(html, /<\/script><img/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test("applies a saved dialog size and drops a size that is not a length", () => {
+  const prompt = {
+    name: "text",
+    required: true,
+    kind: "string" as const,
+    typeLabel: "string",
+    nullable: false,
+    container: "any" as const,
+  };
+  const base = {
+    serverName: "memory",
+    serverTransport: "stdio",
+    serverFile: "/work/.vscode/mcp.json",
+    originLabel: "Workspace",
+    toolName: "echo",
+    title: "Echo",
+    parameters: [],
+    parameterSchema: { type: "object" },
+  };
+  const saved = renderDetailHtml({
+    ...base,
+    tryForm: {
+      title: "Echo",
+      prompts: [prompt],
+      dialogSize: { width: 640, height: 820 },
+    },
+  }, "nonce", "vscode-webview:");
+  assert.match(saved, /dialog#try-dialog\.try-dialog \{\s*width: min\(640px, calc\(100vw - 16px\)\);\s*height: min\(820px, calc\(100vh - 16px\)\);/);
+  assert.doesNotMatch(saved, /style="/);
+
+  const rejected = renderDetailHtml({
+    ...base,
+    tryForm: {
+      title: "Echo",
+      prompts: [prompt],
+      dialogSize: { width: "640px;background:url(https://evil)" as unknown as number, height: 820 },
+    },
+  }, "nonce", "vscode-webview:");
+  assert.doesNotMatch(rejected, /evil/);
+  assert.doesNotMatch(rejected, /640px/);
 });
