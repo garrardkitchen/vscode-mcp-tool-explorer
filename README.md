@@ -196,3 +196,12 @@ A browser OAuth client, including one with only `oauth.clientId` or `oauthGrantT
 - Unix socket and named pipe endpoints are not opened.
 - Icons are taken from the tool's `icons` list. PNG, JPEG, GIF, WebP, and SVG are accepted. An SVG that contains a script, an embedded document, or an external image is skipped, as is a file larger than 1 MB. The detail view shows the same icon beside the tool title.
 - Claude Desktop, Cursor, and other editors' MCP configs are not read unless they are also one of the files in the table above.
+
+## Project
+
+- [AGENTS.md](AGENTS.md) for the layout, commit rules, and how a tool call is made
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [License](LICENSE)
