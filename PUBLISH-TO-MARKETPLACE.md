@@ -8,7 +8,7 @@ Package it once from this repo:
 npm run package
 ```
 
-That writes `mcp-tool-xplorer-0.1.17.vsix`. A version that is already published cannot be uploaded again. Bump `package.json` before the next release.
+That writes `mcp-tool-xplorer-0.1.21.vsix`. A version that is already published cannot be uploaded again. Bump `package.json` before the next release.
 
 ## Visual Studio Marketplace
 
@@ -23,7 +23,7 @@ npx @vscode/vsce login Garrard
 4. Publish the VSIX you already built. `vsce publish` without `--packagePath` does not run this repo's package script, so publish the file `npm run package` wrote:
 
 ```bash
-npx @vscode/vsce publish --packagePath mcp-tool-xplorer-0.1.17.vsix
+npx @vscode/vsce publish --packagePath mcp-tool-xplorer-0.1.21.vsix
 ```
 
 The public page will be [marketplace.visualstudio.com/items?itemName=Garrard.mcp-tool-xplorer](https://marketplace.visualstudio.com/items?itemName=Garrard.mcp-tool-xplorer). In VS Code, search for **MCP Tool Xplorer**, or run:
@@ -49,7 +49,7 @@ If this extension is already on the Visual Studio Marketplace, Open VSX also req
 4. Publish the same VSIX:
 
 ```bash
-npx ovsx publish mcp-tool-xplorer-0.1.17.vsix -p "$OVSX_PAT"
+npx ovsx publish mcp-tool-xplorer-0.1.21.vsix -p "$OVSX_PAT"
 ```
 
 The public page will be [open-vsx.org/extension/Garrard/mcp-tool-xplorer](https://open-vsx.org/extension/Garrard/mcp-tool-xplorer). In Kiro, open Extensions and search for **MCP Tool Xplorer**. Kiro reads Open VSX, so it will not see a package that exists only on the Visual Studio Marketplace.

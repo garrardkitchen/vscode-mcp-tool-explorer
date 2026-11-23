@@ -1,6 +1,8 @@
+import { ENVIRONMENT_BADGE_CSS, environmentClass, isEnvironmentClass } from "../floor/environmentNames.js";
 import type { ParameterPrompt } from "../try/parameters.js";
 import { readDialogSize, type SavedTry } from "../try/history.js";
 import type { SchemaField } from "../types.js";
+import { parseJsonDocument, renderColouredJson } from "./jsonDoc.js";
 import { inlineToolSvg } from "./svg.js";
 
 export interface DetailModel {
@@ -26,6 +28,14 @@ export interface DetailModel {
   call?: DetailCall;
   /** When set, the page opens with the parameter dialog. */
   tryForm?: TryFormModel;
+  /** This tool is in the favourites list on this machine. */
+  favourite?: boolean;
+  /** Environment id shown for this server. */
+  environment?: string;
+  /** Display name when it differs from the id. */
+  environmentLabel?: string;
+  /** Badge colour class. One of the environment badge classes. */
+  environmentClass?: string;
 }
 
 export interface TryFormModel {
@@ -94,7 +104,67 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
       border-radius: 6px;
       box-sizing: border-box;
     }
+    .title-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     h1 { font-size: 1.45em; font-weight: 600; margin: 0 0 4px; }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .env {
+      font-size: 0.68em;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border-radius: 999px;
+      padding: 2px 6px;
+      line-height: 1.4;
+    }
+    ${ENVIRONMENT_BADGE_CSS}
+    button.hex-fav {
+      background: transparent;
+      color: var(--vscode-descriptionForeground, #8d877c);
+      border: none;
+      padding: 4px;
+      line-height: 0;
+      min-width: 0;
+    }
+    button.hex-fav.on { color: #E39A3C; }
+    .hex-fav svg { width: 16px; height: 16px; display: block; }
+    .hex-fav path { fill: none; stroke: currentColor; stroke-width: 1.7; }
+    .hex-fav.on path { fill: currentColor; stroke: currentColor; }
+    .json-block { margin: 8px 0 16px; }
+    .json-find { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .json-query {
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border, transparent);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font: inherit;
+    }
+    .json-count, .json-where { color: var(--vscode-descriptionForeground); font-family: var(--vscode-editor-font-family); }
+    .json-paths { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    button.json-path {
+      background: transparent;
+      color: var(--vscode-textLink-foreground);
+      border: none;
+      padding: 2px 6px;
+    }
+    .json-doc {
+      background: var(--vscode-textCodeBlock-background, #171c21);
+      color: var(--vscode-editor-foreground, #F4F1EA);
+      font-family: var(--vscode-editor-font-family);
+      font-size: 0.92em;
+      line-height: 1.45;
+      padding: 8px 0;
+      overflow: auto;
+      border-radius: 4px;
+    }
+    .json-line { white-space: pre; }
+    .json-doc .k { color: var(--vscode-editor-foreground, #F4F1EA); }
+    .json-doc .s { color: #f0c14d; }
+    .json-doc .n { color: #6dce97; }
+    .json-doc .b { color: #c4a6ff; }
+    .json-doc .z { color: #8d877c; }
+    .json-doc .p { color: #6f6a62; }
+    .json-mark { background: rgba(227, 154, 60, 0.35); color: inherit; }
+    .json-mark.current { background: #E39A3C; color: #14181c; }
     h2 { font-size: 1.05em; font-weight: 600; margin: 28px 0 8px; }
     .meta, .description, .note { color: var(--vscode-descriptionForeground); margin: 4px 0; }
     .note { color: var(--vscode-editorWarning-foreground, var(--vscode-descriptionForeground)); }
@@ -319,7 +389,10 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
     <header>
       ${icon}
       <div>
-        <h1>${escapeHtml(model.title)}</h1>
+        <div class="title-line">
+          <h1>${escapeHtml(model.title)}</h1>
+          ${environmentChip(model.environment, model.environmentLabel, model.environmentClass)}
+        </div>
         <p class="meta">${escapeHtml(model.toolName)} · ${escapeHtml(model.serverName)} · ${escapeHtml(model.serverTransport)}</p>
         <p class="meta">${escapeHtml(model.originLabel)}</p>
         <p class="meta">${escapeHtml(model.serverFile)}</p>
@@ -341,6 +414,10 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
     document.getElementById("try-tool")?.addEventListener("click", () => {
       vscode.postMessage({ command: "try" });
     });
+    document.getElementById("favourite-tool")?.addEventListener("click", () => {
+      vscode.postMessage({ command: "toggleFavourite" });
+    });
+    wireJsonBlocks();
     const dialog = document.getElementById("try-dialog");
     const form = document.getElementById("try-form");
     if (dialog instanceof HTMLDialogElement && form instanceof HTMLFormElement) {
@@ -535,6 +612,7 @@ export function renderDetailHtml(model: DetailModel, nonce: string, cspSource: s
         if (entries.length === 0) showEmpty();
       });
     }
+    ${JSON_FIND_SCRIPT}
   </script>
 </body>
 </html>`;
@@ -553,24 +631,41 @@ function iconMarkup(model: DetailModel): string {
   return `<span class="icon fallback" aria-hidden="true"></span>`;
 }
 
+const HEX = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2 20.2 7v10L12 21.8 3.8 17V7Z"/></svg>`;
+
 function trySection(model: DetailModel): string {
   const intro = `<h2>Try</h2>
     <p class="meta">Try opens a dialog with every parameter. Drag the lower-right corner to resize it. That size is used the next time the dialog opens. Previous tries for this tool can fill the fields again. Run calls the tool and shows the response here. Cancel leaves the tool uncalled.</p>
-    <p><button type="button" id="try-tool">Try</button></p>`;
+    <p class="actions"><button type="button" id="try-tool">Try</button>${favouriteButton(model)}</p>`;
   return model.call ? `${intro}${callSection(model.call)}` : intro;
+}
+
+function favouriteButton(model: DetailModel): string {
+  const on = model.favourite === true;
+  const label = on ? "Remove from favourites" : "Favourite this tool";
+  return `<button type="button" id="favourite-tool" class="hex-fav${on ? " on" : ""}" aria-pressed="${on ? "true" : "false"}" aria-label="${label}" title="${label}">${HEX}</button>`;
+}
+
+function environmentChip(tag: string | undefined, label?: string, kind?: string): string {
+  if (!tag) {
+    return "";
+  }
+  const css = kind && isEnvironmentClass(kind) ? kind : environmentClass(tag);
+  const text = label && label.length > 0 ? label : tag;
+  return `<span class="env ${css}">${escapeHtml(text)}</span>`;
 }
 
 function callSection(call: DetailCall): string {
   const error = call.error ? `<p class="call-error">${escapeHtml(call.error)}</p>` : "";
   const reported = call.isError && !call.error ? `<p class="call-error">The tool reported an error.</p>` : "";
   const argumentsBlock = call.argumentsText.length > 0
-    ? `<h2>Arguments sent</h2><pre>${escapeHtml(call.argumentsText)}</pre>`
+    ? `<h2>Arguments sent</h2>${jsonOrPre(call.argumentsText)}`
     : "";
   const texts = call.texts.length > 0
-    ? `<h2>Result</h2><pre>${escapeHtml(call.texts.join("\n\n"))}</pre>`
+    ? `<h2>Result</h2>${call.texts.map((text) => jsonOrPre(text)).join("")}`
     : "";
   const structured = call.structuredText !== undefined
-    ? `<h2>Structured result</h2><pre>${escapeHtml(call.structuredText)}</pre>`
+    ? `<h2>Structured result</h2>${jsonOrPre(call.structuredText)}`
     : "";
   const notes = call.notes.map((note) => `<p class="meta">${escapeHtml(note)}</p>`).join("");
   const empty = !call.error && call.texts.length === 0 && call.structuredText === undefined && call.notes.length === 0
@@ -578,6 +673,131 @@ function callSection(call: DetailCall): string {
     : "";
   return `<h2>Last result</h2>${reported}${error}${argumentsBlock}${texts}${structured}${notes}${empty}`;
 }
+
+function jsonOrPre(text: string): string {
+  const parsed = parseJsonDocument(text);
+  if (parsed === undefined) {
+    return `<pre>${escapeHtml(text)}</pre>`;
+  }
+  return `<div class="json-block">
+    <div class="json-find">
+      <label>Find <input type="search" class="json-query" spellcheck="false" autocomplete="off" /></label>
+      <span class="json-count" aria-live="polite"></span>
+      <button type="button" class="secondary json-prev">Previous</button>
+      <button type="button" class="secondary json-next">Next</button>
+      <span class="json-where"></span>
+    </div>
+    ${renderColouredJson(parsed)}
+    <div class="json-paths"></div>
+  </div>`;
+}
+
+const JSON_FIND_SCRIPT = `
+    function wireJsonBlocks() {
+      document.querySelectorAll(".json-block").forEach((block) => wireJsonBlock(block));
+    }
+    function wireJsonBlock(block) {
+      const input = block.querySelector(".json-query");
+      const count = block.querySelector(".json-count");
+      const where = block.querySelector(".json-where");
+      const paths = block.querySelector(".json-paths");
+      const hits = Array.from(block.querySelectorAll(".json-hit"));
+      hits.forEach((hit) => { hit.dataset.raw = hit.textContent || ""; });
+      let current = 0;
+      const marks = () => Array.from(block.querySelectorAll("mark.json-mark"));
+      const restore = (hit) => {
+        hit.replaceChildren(document.createTextNode(hit.dataset.raw || ""));
+      };
+      const showCurrent = (found) => {
+        found.forEach((mark, index) => mark.classList.toggle("current", index === current));
+        const mark = found[current];
+        if (count) count.textContent = (current + 1) + " of " + found.length;
+        if (where) where.textContent = mark && mark.dataset.path ? mark.dataset.path : "";
+        if (paths) {
+          paths.replaceChildren();
+          const seen = new Set();
+          found.forEach((item) => {
+            const path = item.dataset.path || "";
+            if (seen.has(path)) return;
+            seen.add(path);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "json-path";
+            button.textContent = path;
+            button.addEventListener("click", () => {
+              const all = marks();
+              const index = all.findIndex((entry) => entry.dataset.path === path);
+              if (index < 0) return;
+              current = index;
+              showCurrent(all);
+              all[index].scrollIntoView({ block: "nearest" });
+            });
+            paths.append(button);
+          });
+        }
+        if (mark) mark.scrollIntoView({ block: "nearest" });
+      };
+      const paint = () => {
+        const query = input instanceof HTMLInputElement ? input.value : "";
+        const needle = query.toLocaleLowerCase();
+        hits.forEach(restore);
+        if (needle.length === 0) {
+          current = 0;
+          if (count) count.textContent = "";
+          if (where) where.textContent = "";
+          if (paths) paths.replaceChildren();
+          return;
+        }
+        const found = [];
+        hits.forEach((hit) => {
+          const raw = hit.dataset.raw || "";
+          const lower = raw.toLocaleLowerCase();
+          const path = hit.dataset.path || "$";
+          let from = 0;
+          hit.replaceChildren();
+          while (from < raw.length) {
+            const at = lower.indexOf(needle, from);
+            if (at < 0) {
+              if (from < raw.length) hit.append(document.createTextNode(raw.slice(from)));
+              break;
+            }
+            if (at > from) hit.append(document.createTextNode(raw.slice(from, at)));
+            const mark = document.createElement("mark");
+            mark.className = "json-mark";
+            mark.dataset.path = path;
+            mark.textContent = raw.slice(at, at + needle.length);
+            hit.append(mark);
+            found.push(mark);
+            from = at + needle.length;
+          }
+        });
+        if (found.length === 0) {
+          current = 0;
+          if (count) count.textContent = "0 of 0";
+          if (where) where.textContent = "";
+          if (paths) paths.replaceChildren();
+          return;
+        }
+        if (current >= found.length) current = 0;
+        showCurrent(found);
+      };
+      if (input) input.addEventListener("input", () => { current = 0; paint(); });
+      const previous = block.querySelector(".json-prev");
+      const next = block.querySelector(".json-next");
+      if (previous) previous.addEventListener("click", () => {
+        const all = marks();
+        if (all.length === 0) return;
+        current = (current - 1 + all.length) % all.length;
+        showCurrent(all);
+      });
+      if (next) next.addEventListener("click", () => {
+        const all = marks();
+        if (all.length === 0) return;
+        current = (current + 1) % all.length;
+        showCurrent(all);
+      });
+    }
+`;
 
 function responseSection(model: DetailModel): string {
   if (!model.response) {

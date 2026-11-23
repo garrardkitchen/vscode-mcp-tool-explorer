@@ -8,6 +8,7 @@ export const TRY_DIALOG_MAX_PX = 4000;
 
 const STATE_KEY = "mcpToolXplorer.savedTries";
 const SIZE_KEY = "mcpToolXplorer.tryDialogSize";
+const USED_KEY = "mcpToolXplorer.usedTools";
 
 export interface TryDialogSize {
   width: number;
@@ -31,6 +32,23 @@ export class TryHistoryStore {
 
   list(serverId: string, toolName: string): SavedTry[] {
     return readSavedTries(this.read()[storageKey(serverId, toolName)]);
+  }
+
+  /** True when this tool has been run, including a run whose saved try was later removed. */
+  hasUse(serverId: string, toolName: string): boolean {
+    const key = storageKey(serverId, toolName);
+    return this.usedKeys().includes(key) || this.list(serverId, toolName).length > 0;
+  }
+
+  /** Records that Run was used for this tool. Returns true the first time. */
+  async noteUse(serverId: string, toolName: string): Promise<boolean> {
+    const key = storageKey(serverId, toolName);
+    const keys = this.usedKeys();
+    if (keys.includes(key)) {
+      return false;
+    }
+    await this.memento.update(USED_KEY, [...keys, key]);
+    return true;
   }
 
   async remember(serverId: string, toolName: string, answers: Record<string, string>, entry: { id: string; savedAt: string }): Promise<SavedTry[]> {
@@ -78,6 +96,14 @@ export class TryHistoryStore {
       return {};
     }
     return { ...(stored as Record<string, unknown>) };
+  }
+
+  private usedKeys(): string[] {
+    const stored = this.memento.get<unknown>(USED_KEY);
+    if (!Array.isArray(stored)) {
+      return [];
+    }
+    return stored.filter((item): item is string => typeof item === "string" && item.length > 0);
   }
 }
 

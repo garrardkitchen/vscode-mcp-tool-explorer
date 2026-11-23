@@ -4,12 +4,16 @@ import path from "node:path";
 import * as vscode from "vscode";
 import { iconCacheDirectory, ServerCatalog, type IconTheme } from "./catalog.js";
 import { copilotConfigFile, profileDirectoryFromGlobalStorage } from "./config/origins.js";
+import { EnvironmentNameStore } from "./floor/environmentNames.js";
+import { EnvironmentStore } from "./floor/environmentStore.js";
+import { FavouriteStore } from "./floor/favourites.js";
 import { clientSecretStorageKey } from "./mcp/credentials.js";
 import type { ResolvedServer } from "./types.js";
 import { TryHistoryStore } from "./try/history.js";
 import { ToolDetailPanel } from "./view/detail.js";
+import { XplorerFloor } from "./view/floor.js";
 import { classifyToolClick, type ToolClickState } from "./view/open.js";
-import { invocationFromTreeItem, ToolTreeProvider } from "./view/tree.js";
+import { invocationFromTreeItem } from "./view/tree.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   const profileDirectory = profileDirectoryFromGlobalStorage(context.globalStorageUri.fsPath);
@@ -30,10 +34,28 @@ export function activate(context: vscode.ExtensionContext): void {
       ? "light"
       : "dark";
   };
-  const tree = new ToolTreeProvider(catalog, theme);
-  const detail = new ToolDetailPanel(context, catalog, theme, new TryHistoryStore(context.globalState));
+  const favourites = new FavouriteStore(context.globalState);
+  const environmentNames = new EnvironmentNameStore(context.globalState);
+  const environments = new EnvironmentStore(context.globalState, () => environmentNames.ids());
+  const history = new TryHistoryStore(context.globalState);
+  let detail!: ToolDetailPanel;
+  const floor = new XplorerFloor(context, catalog, theme, favourites, environments, environmentNames, history, () => {
+    detail.refreshIdle();
+  });
+  detail = new ToolDetailPanel(
+    context,
+    catalog,
+    theme,
+    history,
+    favourites,
+    environments,
+    environmentNames,
+    () => {
+      floor.repaint();
+    },
+  );
   let toolClicks: ToolClickState = {};
-  const refreshSoon = debounce(() => tree.refresh(), 300);
+  const refreshSoon = debounce(() => floor.refresh(), 300);
   const workspaceWatchers: vscode.Disposable[] = [];
 
   const replaceWorkspaceWatchers = (): void => {
@@ -45,8 +67,10 @@ export function activate(context: vscode.ExtensionContext): void {
   replaceWorkspaceWatchers();
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("mcpToolXplorer.tools", tree),
-    vscode.commands.registerCommand("mcpToolXplorer.refresh", () => tree.refresh()),
+    vscode.window.registerWebviewViewProvider("mcpToolXplorer.tools", floor, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+    vscode.commands.registerCommand("mcpToolXplorer.refresh", () => floor.refresh()),
     vscode.commands.registerCommand("mcpToolXplorer.openTool", (serverId: unknown, toolName: unknown) => {
       if (typeof serverId !== "string" || typeof toolName !== "string") {
         return;
@@ -69,7 +93,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       await context.secrets.store(clientSecretStorageKey(server.id, server.clientCredentials.clientId), entered);
-      tree.refresh();
+      floor.refresh();
     }),
     vscode.commands.registerCommand("mcpToolXplorer.tryTool", (first?: unknown, second?: unknown) => {
       const fromTree = invocationFromTreeItem(first);
@@ -81,7 +105,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       return undefined;
     }),
-    vscode.window.onDidChangeActiveColorTheme(() => tree.rerender()),
+    vscode.window.onDidChangeActiveColorTheme(() => floor.onThemeChange()),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       replaceWorkspaceWatchers();
       refreshSoon();
