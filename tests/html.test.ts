@@ -286,3 +286,37 @@ test("applies a saved dialog size and drops a size that is not a length", () => 
   assert.doesNotMatch(rejected, /evil/);
   assert.doesNotMatch(rejected, /640px/);
 });
+
+test("colours a JSON result, marks a favourite, and keeps other text escaped", () => {
+  const html = renderDetailHtml({
+    serverName: "entra-prod",
+    serverTransport: "http",
+    serverFile: "/work/.vscode/mcp.json",
+    originLabel: "Workspace",
+    toolName: "get_user",
+    title: "Get user",
+    parameters: [],
+    parameterSchema: { type: "object" },
+    favourite: true,
+    environment: "PROD",
+    call: {
+      argumentsText: '{"mail":"ada@example.com"}',
+      isError: false,
+      texts: ["not json <b>"],
+      structuredText: '{"ok":true}',
+      notes: [],
+    },
+  }, "nonce", "vscode-webview:");
+
+  assert.match(html, /class="s json-hit" data-path="\$\.mail"/);
+  assert.match(html, /class="json-query"/);
+  assert.match(html, /class="n json-hit"|class="b json-hit"/);
+  assert.match(html, /not json &lt;b&gt;/);
+  assert.match(html, /id="favourite-tool"/);
+  assert.match(html, /aria-pressed="true"/);
+  assert.match(html, /class="env env-prod">PROD/);
+  assert.match(html, /function wireJsonBlocks/);
+  assert.match(html, /<script nonce="nonce">/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.doesNotMatch(html, /style="/);
+});

@@ -2,17 +2,23 @@
 
 ![MCP Tool Xplorer](media/logo.png)
 
-MCP Tool Xplorer lists the tools exposed by the MCP servers already configured for VS Code. Each tool shows its icon beside its name. Click a tool to open its parameters, their datatypes, and the response schema in an editor tab. Another click replaces that tab. Double-click a tool to open a tab that stays open. Try a tool to fill in its parameters in a dialog and see the response.
+MCP Tool Xplorer lists the tools exposed by the MCP servers already configured for VS Code. The activity bar opens a page of servers and tools. Each tool shows its icon beside its name. Click a tool to open its parameters, their datatypes, and the response schema in an editor tab. Another click replaces that tab. Double-click a tool to open a tab that stays open. Try a tool to fill in its parameters in a dialog and see a colour-coded response.
 
 ## What you can do
 
-- See every server from your VS Code and Copilot MCP config files.
-- Expand a server to connect and list its tools in alphabetical order. A tool with a title is ordered by that title, and letter case is ignored. The connection closes after the list is read.
-- Read the tool icon next to the tool name. A tool without a usable icon uses the built-in tools icon.
+- See every server from your VS Code and Copilot MCP config files on the Xplorer page in the activity bar. Servers sit on the left. Tools for the selected server sit on the right. Drag the line between them to resize the server list. That width is kept on this machine.
+- Select a server to connect and list its tools in alphabetical order. A tool with a title is ordered by that title, and letter case is ignored. **A–Z** at the top of the tool list reverses that order. Favourites stay above the other tools. The connection closes after the list is read. A server that cannot be started shows the reason and is not connected.
+- Search tools across the servers you are looking at. A match shows the tool, the server, and its environment. Favourites that match are listed first. **All**, **DEV**, **TEST**, **PROD**, and any name you add narrow the server list. **Names** adds an environment, renames one, or removes an environment you added. **DEV**, **TEST**, and **PROD** stay on the list. Their names can be changed. Removing an added name tags those servers from the server name again.
+- Favourite a tool with the hexagon beside its name, on the page or next to **Try** in the tool tab. Favourites stay above the other tools. Press the filled hexagon to remove one. Favourites are stored on this machine and are not secrets.
+- See **Used** beside a tool that has been run from Try. The mark stays after a saved try is removed. A tool that has not been run has no mark. **Used only**, at the top of the tool list, hides the others.
+- Tag a server **DEV**, **TEST**, **PROD**, or a name you added. **DEV**, **TEST**, and **PROD** are read from the server name when the name contains that word, such as `entra-dev`. `development` stays untagged. Press the tag, or **Tag**, and choose a name, or **Use the server name**. The choice is stored on this machine.
+- Read the tool icon next to the tool name. A tool without a usable icon leaves that space empty.
 - Click a tool once to open its icon, description, parameters, and response schema in an editor tab. Clicking a different tool replaces that tab. Double-click a tool to open a tab that stays open when you click other tools.
-- Try a tool. A dialog lists every parameter. Run calls the tool and shows the response in the detail view. Cancel does not call it. Drag the lower-right corner to resize the dialog. That size is used the next time it opens. A run saves those parameter values for that tool. Choose a previous try to fill the dialog again, clear the fields to start over, or remove a saved try after confirming.
+- Try a tool. A dialog lists every parameter. Run calls the tool and shows the response in the detail view. Cancel leaves the tool uncalled. A server tagged **PROD** asks you to confirm before the dialog opens. The question uses the name shown on that tag. Drag the lower-right corner to resize the dialog. That size is used the next time it opens. A run saves those parameter values for that tool. Choose a previous try to fill the dialog again, clear the fields to start over, or remove a saved try after confirming.
+- Read a JSON response with colour, and search it. Keys, strings, numbers, booleans, and null use different colours. Find shows how many matches there are, highlights the current one, and lists the JSON path, such as `$.mail`. Text that is not JSON stays plain.
+- Press **Markdown** at the top of the tool list. A new editor tab opens with the tools on that list, each parameter, and each response schema. The tab starts with a table: the tool name links to that tool, and the description is the second column. The tab does not call the tools. A search writes the tools that match. Otherwise it writes the selected server.
 - Refresh the list after you change a config file. The view also reloads when those files change.
-- Connect an HTTP server that uses a machine-to-machine client credentials grant. A browser sign-in is not started.
+- Connect an HTTP server that uses a machine-to-machine client credentials grant. Press the key beside that server. VS Code asks for the client secret and stores it in secret storage. It is not written to a config file, and it is not shown again. A browser sign-in is not started.
 
 A parameter row shows the name, datatype, whether it is required, and its description. Nested object fields use dotted names such as `address.city`. Array items use names such as `tags[].id`. Required means the field is listed in its parent object's `required` array.
 
@@ -111,13 +117,13 @@ npm run package
 Install into VS Code:
 
 ```bash
-code --install-extension mcp-tool-xplorer-0.1.17.vsix --force
+code --install-extension mcp-tool-xplorer-0.1.21.vsix --force
 ```
 
 Install into Kiro:
 
 ```bash
-kiro --install-extension mcp-tool-xplorer-0.1.17.vsix --force
+kiro --install-extension mcp-tool-xplorer-0.1.21.vsix --force
 ```
 
 Reload the window in the editor you installed into. The **MCP Tool Xplorer** icon is on the activity bar. If you do not see it, right-click the activity bar and enable **MCP Tool Xplorer**.
@@ -147,17 +153,20 @@ For Insiders, use `code-insiders` in the VS Code install and uninstall commands.
 ## Use the view
 
 1. Configure servers in one of the files above, or use **MCP: Add Server** in VS Code.
-2. Open **MCP Tool Xplorer** on the activity bar.
-3. Expand a server. The extension starts that server, requests `tools/list`, and then closes the connection.
-4. Click a tool once. A tab opens in the editor and shows that tool. Click a different tool and the same tab shows the new tool.
-5. Double-click a tool to open a tab that stays open when you click other tools.
-6. Choose **Try** on the tool row, or the **Try** button in the tool tab. A dialog opens with the parameters. Drag the lower-right corner to resize it. Choose **Run** to call the tool, or **Cancel** to close it. **Previous tries** fills the fields from an earlier run. **Clear fields** empties the dialog without deleting saved tries. **Remove** asks you to confirm before a saved try is deleted.
+2. Open **MCP Tool Xplorer** on the activity bar. Servers are on the left. Tools for the selected server are on the right. Drag the line between them to resize the server list. Arrow keys move it while that line is focused. The width is kept on this machine.
+3. Select a server. The extension starts that server, requests `tools/list`, and then closes the connection. Use the search box to look across servers. **All**, **DEV**, **TEST**, **PROD**, or a name you added narrows the list. **Names** adds, renames, or removes an environment.
+4. Press the hexagon to favourite a tool. Favourites stay above a line, above the other tools. A tool you have run shows **Used** in amber. **Used only** shows just those tools. **A–Z** reverses the order. **Markdown** opens a tab with the tools, their parameters, and their response schemas. The tab starts with a table of links to those tools.
+5. Press the key on a server that uses a client credentials grant. Enter the client secret when asked. Press the environment tag to choose a name, or **Use the server name**.
+6. Click a tool once. A tab opens in the editor and shows that tool. Click a different tool and the same tab shows the new tool.
+7. Double-click a tool to open a tab that stays open when you click other tools.
+8. Choose **Try** on the tool row, or the **Try** button in the tool tab. A server tagged **PROD** asks you to confirm first. A dialog then opens with the parameters. Drag the lower-right corner to resize it. Choose **Run** to call the tool, or **Cancel** to close it. **Previous tries** fills the fields from an earlier run. **Clear fields** empties the dialog without deleting saved tries. **Remove** asks you to confirm before a saved try is deleted.
+9. When the response is JSON, use **Find** to move through matches. The count shows which match is current, and the path names the field.
 
 Use the refresh action on the view title, or run **MCP Tool Xplorer: Refresh Servers** from the Command Palette. A server that fails to connect shows the error under its name, including a short stderr tail for a stdio process. Connecting and listing each time out after 20 seconds.
 
 ## Try a tool
 
-Try is the play icon on each tool row, and it is also a button in the tool's detail view. It opens the tool's tab and a dialog with every parameter. Run opens a fresh connection, sends `tools/call`, shows the response in that tab, and closes the connection. Listing tools does not call them.
+Try is the **Try** button on each tool row, and it is also a button in the tool's detail view. It opens the tool's tab and a dialog with every parameter. When the server is tagged **PROD**, VS Code asks you to confirm before that dialog opens. Run opens a fresh connection, sends `tools/call`, shows the response in that tab, and closes the connection. Listing tools does not call them. A JSON response can be searched. Find matches keys, strings, numbers, booleans, and null, and shows the path of the current match. Text that is not JSON is shown as plain text.
 
 The dialog follows the tool's input schema:
 

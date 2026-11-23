@@ -1,8 +1,8 @@
 {
   "name": "mcp-tool-xplorer",
   "displayName": "MCP Tool Xplorer",
-  "description": "Browse tools from the MCP servers configured in VS Code, inspect each tool's icon, parameter datatypes, and response schema, try a tool from a parameter dialog, and connect a machine-to-machine client credentials grant.",
-  "version": "0.1.17",
+  "description": "Browse MCP servers and their tools, favourite and search them, tag DEV, TEST, or PROD, inspect schemas, try a tool, and read a colour-coded response.",
+  "version": "0.1.21",
   "publisher": "Garrard",
   "icon": "media/icon.png",
   "license": "MIT",
@@ -42,6 +42,7 @@
     "views": {
       "mcpToolXplorer": [
         {
+          "type": "webview",
           "id": "mcpToolXplorer.tools",
           "name": "MCP Tool Xplorer",
           "contextualTitle": "MCP Tool Xplorer"
@@ -79,18 +80,6 @@
           "command": "mcpToolXplorer.refresh",
           "when": "view == mcpToolXplorer.tools",
           "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "mcpToolXplorer.tryTool",
-          "when": "view == mcpToolXplorer.tools && viewItem == mcpTool",
-          "group": "inline"
-        },
-        {
-          "command": "mcpToolXplorer.setClientSecret",
-          "when": "view == mcpToolXplorer.tools && viewItem == mcpServerCredentials",
-          "group": "inline"
         }
       ],
       "commandPalette": [

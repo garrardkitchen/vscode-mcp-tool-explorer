@@ -78,3 +78,23 @@ test("remembers one dialog size and ignores a size that cannot be used", async (
   data.set("mcpToolXplorer.tryDialogSize", { width: "640", height: 800 });
   assert.equal(store.dialogSize(), undefined);
 });
+
+test("marks a tool as used once, and a saved try counts before that mark", async () => {
+  const data = new Map<string, unknown>();
+  const store = new TryHistoryStore({
+    get: (key) => data.get(key) as undefined,
+    update: async (key, value) => {
+      data.set(key, value);
+    },
+  });
+
+  assert.equal(store.hasUse("server", "echo"), false);
+  await store.remember("server", "echo", { text: "hi" }, first);
+  assert.equal(store.hasUse("server", "echo"), true);
+
+  assert.equal(await store.noteUse("server", "plain"), true);
+  assert.equal(await store.noteUse("server", "plain"), false);
+  assert.equal(store.hasUse("server", "plain"), true);
+  await store.remove("server", "echo", "a");
+  assert.equal(store.hasUse("server", "echo"), false);
+});

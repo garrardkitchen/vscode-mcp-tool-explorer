@@ -2,7 +2,7 @@
 
 MCP Tool Xplorer is a local VS Code extension. It lists tools from MCP servers you already configured, shows each tool's icon and schemas, and calls a tool only when you choose Try.
 
-Read this before you change the repo. The extension id is `Garrard.mcp-tool-xplorer`. The package name is `mcp-tool-xplorer`. The publisher id is `Garrard`. The current version is `0.1.17`.
+Read this before you change the repo. The extension id is `Garrard.mcp-tool-xplorer`. The package name is `mcp-tool-xplorer`. The publisher id is `Garrard`. The current version is `0.1.21`.
 
 ## Rules for every change
 
@@ -11,7 +11,7 @@ Read this before you change the repo. The extension id is `Garrard.mcp-tool-xplo
 - A user-facing change also updates [README.md](README.md) in that same commit.
 - Do not commit `.vscode/mcp.json`, client secrets, tokens, authorization headers, `node_modules/`, `dist/`, or `*.vsix`.
 - Do not log a client secret, copy it into the webview, or put it in the README, the changelog, or an issue.
-- Do not weaken the detail-view content security policy. It stays `default-src 'none'` with nonce style and script sources only.
+- Do not weaken the detail-view or Xplorer-page content security policy. It stays `default-src 'none'` with nonce style and script sources only.
 - Run `npm test` before you commit code. `npx tsc --noEmit` checks `src/`. Tests are run with `tsx` and are not part of that `tsc` project.
 
 ## Commands
@@ -45,15 +45,26 @@ npm run package
 │   │   ├── credentials.ts            secret-storage key and redaction
 │   │   ├── result.ts                 text, structured content, and a length cap
 │   │   └── icons.ts                  pick and cache a tool icon
+│   ├── floor/                        xplorer page state
+│   │   ├── environment.ts            DEV, TEST, PROD from the server name
+│   │   ├── environmentNames.ts       renamed and added environment names
+│   │   ├── environmentStore.ts       local tag override
+│   │   ├── catalogDoc.ts             markdown of tools, parameters, and response schemas
+│   │   ├── favourites.ts             favourite tool keys
+│   │   ├── listing.ts                search, filter, used-only, and tool order
+│   │   └── shelfWidth.ts             saved server-list width
 │   ├── schema/
 │   │   └── fields.ts                 parameter and response rows
 │   ├── try/                          the parameter dialog
 │   │   ├── parameters.ts             dialog fields and coercion
 │   │   └── history.ts                saved tries and dialog size
 │   └── view/                         activity bar, editor tab, and dialog
-│       ├── tree.ts                   activity-bar tree
+│       ├── floor.ts                  activity-bar Xplorer page, servers left and tools right
+│       ├── floorHtml.ts              xplorer page markup and the server-list divider
+│       ├── tree.ts                   previous tree, not registered
 │       ├── detail.ts                 editor tab and the try dialog
 │       ├── html.ts                   detail webview, CSP, and dialog markup
+│       ├── jsonDoc.ts                colour-coded JSON
 │       ├── open.ts                   single click replaces, double click pins
 │       └── svg.ts                    inline a safe SVG icon
 ├── tests/                            node:test files, one area each
@@ -68,7 +79,7 @@ npm run package
 
 `esbuild.js` bundles to CommonJS. `vscode` stays external. `mainFields` is `["module", "main"]` so `jsonc-parser` uses its ESM build. The UMD build breaks once it is bundled.
 
-Commands use the `mcpToolXplorer` prefix. The tree node type is `ExplorerNode`. The webview type is `mcpToolXplorer.detail`. The view id is `mcpToolXplorer.tools`.
+Commands use the `mcpToolXplorer` prefix. The activity-bar view id is `mcpToolXplorer.tools` and its type is `webview`. The tool tab webview type is `mcpToolXplorer.detail`. `src/view/tree.ts` remains in the repo and is not registered.
 
 ## Dependencies
 
@@ -98,9 +109,9 @@ Node.js 20 or newer. The MCP client identity in `src/mcp/session.ts` is `{ name:
 
 Config is read from four places. A client secret comes from the config file when `oauthClientSecret` is set, including `${env:NAME}`. Otherwise it comes from VS Code secret storage, after the key icon or **Set Client Secret**. An `Authorization` header already in the config is sent as written and the client-credentials grant is not used.
 
-Expanding a server connects, follows `tools/list` cursors, and closes. That path does not call a tool. Try opens a new session, calls that one tool, and closes. Connecting times out after 20 seconds. The call times out after 60 seconds.
+Selecting a server on the Xplorer page connects, follows `tools/list` cursors, and closes. A search loads the other visible servers the same way. That path does not call a tool. A skipped server is shown and is not started. Try opens a new session, calls that one tool, and closes. Connecting times out after 20 seconds. The call times out after 60 seconds. A server tagged PROD asks for confirmation before the try dialog opens.
 
-Saved try values and the dialog size are in VS Code global state (`mcpToolXplorer.savedTries`, `mcpToolXplorer.tryDialogSize`). They are not in secret storage.
+Saved try values and the dialog size are in VS Code global state (`mcpToolXplorer.savedTries`, `mcpToolXplorer.tryDialogSize`). A tool that has been run is recorded in `mcpToolXplorer.usedTools`, and the Xplorer page shows **Used**. Favourites are `mcpToolXplorer.favourites`. Environment overrides are `mcpToolXplorer.environments`. Environment names are `mcpToolXplorer.environmentNames`. The server list width is `mcpToolXplorer.serverListWidth`. None of these are secret storage. A client secret stays in secret storage.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'darkMode': true, 'background': '#12161a', 'fontFamily': 'Segoe UI, sans-serif', 'fontSize': '16px', 'primaryTextColor': '#F4F1EA', 'primaryBorderColor': '#E39A3C', 'lineColor': '#E39A3C', 'textColor': '#F4F1EA'}}}%%
@@ -130,15 +141,15 @@ flowchart TB
 
   subgraph APP["This extension"]
     direction LR
-    TREE["Activity bar<br/>servers and tools"]
+    TREE["Xplorer page<br/>servers and tools"]
     TAB["Editor tab<br/>icon, parameters, response schema"]
     DIALOG["Try dialog<br/>Run or Cancel"]
-    MEMORY["Saved tries and dialog size<br/>global state, not secret storage"]
+    MEMORY["Saved tries, dialog size,<br/>favourites, environment tags<br/>global state, not secret storage"]
   end
 
   subgraph WIRE["Tool call"]
     direction TB
-    LIST["Expand server<br/>tools/list, then close<br/>tools are not called"]
+    LIST["Select a server<br/>tools/list, then close<br/>tools are not called"]
     GRANT{"How does this server connect?"}
     ISSUER["Token URL from MCP metadata,<br/>oauthExpectedIssuer, or oauthTokenUrl"]
     TOKEN["client_credentials POST<br/>then Authorization Bearer"]
@@ -203,7 +214,7 @@ A few rules that are easy to get wrong:
 - If the token endpoint rejects the RFC 8707 `resource` parameter, the request is sent once more without it.
 - Browser OAuth is not started. `unix://` and `pipe://` are not opened.
 - Try calls the tool without listing first, so the SDK does not validate the result against a cached output schema. The raw result is what the tab shows.
-- The detail webview escapes `<` in the saved-try JSON and does not use inline event handlers or `style` attributes.
+- The detail webview and the Xplorer page escape `<`, and they do not use inline event handlers or `style` attributes. JSON search builds matches with text nodes and `<mark>`. It does not put the query in `innerHTML`.
 
 ## Also read
 

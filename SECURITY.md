@@ -8,7 +8,7 @@ Security fixes go into the latest release on `main`.
 
 | Version | Supported |
 | --- | --- |
-| 0.1.17 | Yes |
+| 0.1.21 | Yes |
 | Older builds | No |
 
 ## Reporting a vulnerability

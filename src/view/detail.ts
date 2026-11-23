@@ -2,6 +2,9 @@ import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import * as vscode from "vscode";
 import type { IconTheme, ServerCatalog } from "../catalog.js";
+import { environmentClass, EnvironmentNameStore } from "../floor/environmentNames.js";
+import { EnvironmentStore } from "../floor/environmentStore.js";
+import { FavouriteStore } from "../floor/favourites.js";
 import type { ToolCallSummary } from "../mcp/result.js";
 import { schemaFields } from "../schema/fields.js";
 import { readDialogSize, TryHistoryStore } from "../try/history.js";
@@ -24,6 +27,10 @@ export class ToolDetailPanel {
     private readonly catalog: ServerCatalog,
     private readonly theme: () => IconTheme,
     private readonly history: TryHistoryStore,
+    private readonly favourites: FavouriteStore,
+    private readonly environments: EnvironmentStore,
+    private readonly environmentNames: EnvironmentNameStore,
+    private readonly onFavouriteChanged: () => void,
   ) {}
 
   async show(serverId: string, toolName: string, pin = false): Promise<void> {
@@ -70,6 +77,14 @@ export class ToolDetailPanel {
     await this.tryPage(page);
   }
 
+  /** Refreshes an open tool tab after a favourite or environment change, unless its try dialog is open. */
+  refreshIdle(): void {
+    this.preview?.refreshIfIdle();
+    for (const page of this.pinned) {
+      page.refreshIfIdle();
+    }
+  }
+
   private async tryPage(page: DetailPage): Promise<void> {
     if (this.trying) {
       void vscode.window.showInformationMessage("Finish or cancel the open try dialog first.");
@@ -77,10 +92,31 @@ export class ToolDetailPanel {
     }
     this.trying = true;
     try {
+      if (!(await this.allowProdTry(page))) {
+        return;
+      }
       await page.runTry();
     } finally {
       this.trying = false;
     }
+  }
+
+  private async allowProdTry(page: DetailPage): Promise<boolean> {
+    const current = page.identity();
+    if (!current) {
+      return true;
+    }
+    const server = this.catalog.server(current.serverId);
+    if (!server || this.environments.tag(server.id, server.name) !== "PROD") {
+      return true;
+    }
+    const label = this.environmentNames.label("PROD");
+    const choice = await vscode.window.showWarningMessage(
+      `${server.name} is tagged ${label}. Try ${current.toolName}?`,
+      { modal: true },
+      "Try",
+    );
+    return choice === "Try";
   }
 
   private ensurePreview(title: string): DetailPage {
@@ -108,9 +144,21 @@ export class ToolDetailPanel {
         localResourceRoots: [this.context.globalStorageUri],
       },
     );
-    const page = new DetailPage(panel, this.catalog, this.theme, this.history, () => {
-      void this.tryPage(page);
-    });
+    const page = new DetailPage(
+      panel,
+      this.catalog,
+      this.theme,
+      this.history,
+      this.favourites,
+      this.environments,
+      this.environmentNames,
+      () => {
+        void this.tryPage(page);
+      },
+      () => {
+        this.onFavouriteChanged();
+      },
+    );
     panel.onDidDispose(() => {
       if (this.preview === page) {
         this.preview = undefined;
@@ -133,13 +181,19 @@ class DetailPage {
   private formWait: ((reply: FormReply) => void) | undefined;
   /** Set when the page changes before the dialog has started waiting. */
   private formCancelled = false;
+  /** Set for the whole time the try dialog is being shown, including before it starts waiting. */
+  private dialogOpen = false;
 
   constructor(
     private readonly panel: vscode.WebviewPanel,
     private readonly catalog: ServerCatalog,
     private readonly theme: () => IconTheme,
     private readonly history: TryHistoryStore,
+    private readonly favourites: FavouriteStore,
+    private readonly environments: EnvironmentStore,
+    private readonly environmentNames: EnvironmentNameStore,
     onTry: () => void,
+    private readonly onFavouriteChanged: () => void,
   ) {
     const messages = panel.webview.onDidReceiveMessage((message: unknown) => {
       const removed = removeTryId(message);
@@ -157,6 +211,13 @@ class DetailPage {
       const reply = formReply(message);
       if (reply) {
         this.takeForm(reply);
+        return;
+      }
+      if (isFavouriteMessage(message)) {
+        if (this.formWait || this.dialogOpen || !this.current) {
+          return;
+        }
+        void this.toggleFavourite();
         return;
       }
       if (!isTryMessage(message) || !this.current) {
@@ -181,6 +242,29 @@ class DetailPage {
 
   reveal(preserveFocus: boolean): void {
     this.panel.reveal(undefined, preserveFocus);
+  }
+
+  identity(): { serverId: string; toolName: string } | undefined {
+    return this.current;
+  }
+
+  refreshIfIdle(): void {
+    if (this.disposed || this.formWait || this.dialogOpen || !this.current) {
+      return;
+    }
+    void this.render(this.current.serverId, this.current.toolName);
+  }
+
+  private async toggleFavourite(): Promise<void> {
+    const current = this.current;
+    if (!current || this.formWait || this.dialogOpen) {
+      return;
+    }
+    await this.favourites.toggle(current.serverId, current.toolName);
+    this.onFavouriteChanged();
+    if (this.current?.serverId === current.serverId && this.current.toolName === current.toolName) {
+      await this.render(current.serverId, current.toolName);
+    }
   }
 
   async show(serverId: string, toolName: string): Promise<void> {
@@ -256,44 +340,55 @@ class DetailPage {
     schema: unknown,
   ): Promise<Awaited<ReturnType<typeof collectFromAnswers>> | { status: "cancelled" }> {
     this.formCancelled = false;
-    const plan = argumentPlan(schema);
-    let answers: Record<string, string> | undefined;
-    let errors: Record<string, string> | undefined;
-    while (!this.disposed && this.matches(serverId, toolName)) {
-      const form: TryFormModel = {
-        title,
-        prompts: plan.prompts,
-        answers,
-        errors,
-        fixedNote: fixedArgumentNote(plan.fixed),
-        history: plan.prompts.length > 0 ? this.history.list(serverId, toolName) : undefined,
-        dialogSize: this.history.dialogSize(),
-      };
-      await this.render(serverId, toolName, { tryForm: form });
-      if (this.disposed || !this.matches(serverId, toolName)) {
-        return { status: "cancelled" };
+    this.dialogOpen = true;
+    try {
+      const plan = argumentPlan(schema);
+      let answers: Record<string, string> | undefined;
+      let errors: Record<string, string> | undefined;
+      while (!this.disposed && this.matches(serverId, toolName)) {
+        const form: TryFormModel = {
+          title,
+          prompts: plan.prompts,
+          answers,
+          errors,
+          fixedNote: fixedArgumentNote(plan.fixed),
+          history: plan.prompts.length > 0 ? this.history.list(serverId, toolName) : undefined,
+          dialogSize: this.history.dialogSize(),
+        };
+        await this.render(serverId, toolName, { tryForm: form });
+        if (this.disposed || !this.matches(serverId, toolName)) {
+          return { status: "cancelled" };
+        }
+        const reply = await this.waitForForm();
+        if (reply.command === "cancelTry" || this.disposed || !this.matches(serverId, toolName)) {
+          return { status: "cancelled" };
+        }
+        const collected = collectFromAnswers(schema, reply.answers);
+        if (collected.status === "ready") {
+          if (plan.prompts.length > 0) {
+            await this.history.remember(serverId, toolName, reply.answers, {
+              id: randomBytes(8).toString("hex"),
+              savedAt: new Date().toISOString(),
+            });
+          }
+          const firstUse = await this.history.noteUse(serverId, toolName);
+          if (firstUse) {
+            this.onFavouriteChanged();
+          }
+        }
+        if (collected.status !== "invalid") {
+          return collected;
+        }
+        answers = reply.answers;
+        errors = {};
+        for (const field of collected.errors) {
+          errors[field.name] = field.message;
+        }
       }
-      const reply = await this.waitForForm();
-      if (reply.command === "cancelTry" || this.disposed || !this.matches(serverId, toolName)) {
-        return { status: "cancelled" };
-      }
-      const collected = collectFromAnswers(schema, reply.answers);
-      if (collected.status === "ready" && plan.prompts.length > 0) {
-        await this.history.remember(serverId, toolName, reply.answers, {
-          id: randomBytes(8).toString("hex"),
-          savedAt: new Date().toISOString(),
-        });
-      }
-      if (collected.status !== "invalid") {
-        return collected;
-      }
-      answers = reply.answers;
-      errors = {};
-      for (const field of collected.errors) {
-        errors[field.name] = field.message;
-      }
+      return { status: "cancelled" };
+    } finally {
+      this.dialogOpen = false;
     }
-    return { status: "cancelled" };
   }
 
   private waitForForm(): Promise<FormReply> {
@@ -403,8 +498,25 @@ class DetailPage {
       responseSchema: tool.outputSchema,
       call,
       tryForm: options?.tryForm,
+      favourite: this.favourites.has(serverId, tool.name),
+      ...environmentFields(this.environments.tag(server.id, server.name), this.environmentNames),
     }, randomBytes(16).toString("hex"), this.panel.webview.cspSource);
   }
+}
+
+function environmentFields(tag: string | undefined, names: EnvironmentNameStore): {
+  environment?: string;
+  environmentLabel?: string;
+  environmentClass?: string;
+} {
+  if (!tag) {
+    return {};
+  }
+  return {
+    environment: tag,
+    environmentLabel: names.label(tag),
+    environmentClass: environmentClass(tag),
+  };
 }
 
 /** Raster icons load through the webview. SVG is inlined because that resource URL does not paint. */
@@ -450,6 +562,10 @@ function removeTryId(message: unknown): string | undefined {
 
 function isTryMessage(message: unknown): boolean {
   return !!message && typeof message === "object" && (message as { command?: unknown }).command === "try";
+}
+
+function isFavouriteMessage(message: unknown): boolean {
+  return !!message && typeof message === "object" && (message as { command?: unknown }).command === "toggleFavourite";
 }
 
 function isDialogResize(message: unknown): boolean {
